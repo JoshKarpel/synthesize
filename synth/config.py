@@ -35,11 +35,21 @@ def random_style() -> str:
     return f"#{''.join(random.choices('ABCDEF', k=6))}"
 
 
-class Node(Model):
+class Command(Model):
+    pass
+
+
+class ShellCommand(Command):
+    type: Literal["shell"] = "shell"
+
+    args: str
+
+
+class Target(Model):
     id: str
 
-    command: str
-    shutdown: str | None = None
+    commands: tuple[ShellCommand] = Field(default=())
+    shutdown: tuple[ShellCommand] = Field(default=())
 
     after: tuple[str, ...] = Field(default=())
     lifecycle: Once | Restart | Watch = Once()
@@ -47,9 +57,5 @@ class Node(Model):
     style: str = Field(default_factory=random_style)
 
 
-class Graph(Model):
-    nodes: tuple[Node, ...]
-
-
 class Config(Model):
-    graph: Graph
+    targets: tuple[Target, ...]

@@ -1,9 +1,15 @@
+from dataclasses import dataclass
+
 from rich.console import Console
 
-from synth.config import Config
+from synth.config import Config, Target
 from synth.events import Event
-from synth.execution import Execution
 from synth.fanout import Fanout
+
+
+@dataclass(frozen=True)
+class TargetGraph:
+    targets: set[Target]
 
 
 class Controller:
@@ -15,7 +21,4 @@ class Controller:
         self.events_consumer = self.events.consumer()
 
     async def start(self) -> None:
-        for node in self.config.graph.nodes:
-            e = await Execution.start(node=node, events=self.events, width=80)
-            print(e)
-            await e.wait()
+        pass

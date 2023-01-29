@@ -1,6 +1,9 @@
-graph:
-  nodes:
-    - id: "tests"
-      command: pytest
-    - id: "types"
-      command: mypy
+targets:
+  - id: tests
+    commands:
+      - type: shell
+        args: pytest
+  - id: types
+    commands:
+      - type: shell
+        args: mypy

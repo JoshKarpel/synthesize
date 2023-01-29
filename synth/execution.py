@@ -6,14 +6,15 @@ from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_shell
 from dataclasses import dataclass, field
 from signal import SIGKILL, SIGTERM
 
-from synth.config import Node
+from synth.config import ShellCommand, Target
 from synth.events import CommandExited, CommandMessage, CommandStarted, CommandStarting, Event
 from synth.fanout import Fanout
 
 
-@dataclass
+@dataclass(frozen=True)
 class Execution:
-    node: Node
+    target: Target
+    command: ShellCommand
 
     events: Fanout[Event] = field(repr=False)
 
@@ -27,14 +28,15 @@ class Execution:
     @classmethod
     async def start(
         cls,
-        node: Node,
+        target: Target,
+        command: ShellCommand,
         events: Fanout[Event],
         width: int = 80,
     ) -> Execution:
-        await events.put(CommandStarting(node=node))
+        await events.put(CommandStarting(target=target, command=command))
 
         process = await create_subprocess_shell(
-            cmd=node.command,
+            cmd=command.args,
             stdout=PIPE,
             stderr=STDOUT,
             env={**os.environ, "FORCE_COLOR": "true", "COLUMNS": str(width)},
@@ -42,14 +44,20 @@ class Execution:
         )
 
         reader = create_task(
-            read_output(node=node, process=process, events=events),
-            name=f"Read output for {node.command!r}",
+            read_output(
+                target=target,
+                command=command,
+                process=process,
+                events=events,
+            ),
+            name=f"Read output for {command.args!r}",
         )
 
-        await events.put(CommandStarted(node=node))
+        await events.put(CommandStarted(target=target, command=command))
 
         return cls(
-            node=node,
+            target=target,
+            command=command,
             events=events,
             process=process,
             reader=reader,
@@ -75,7 +83,7 @@ class Execution:
         if self.has_exited:
             return None
 
-        self.was_killed = True
+        # self.was_killed = True
 
         # await self.messages.put(
         #     InternalMessage(
@@ -89,7 +97,7 @@ class Execution:
         if self.has_exited:
             return None
 
-        self.was_killed = True
+        # self.was_killed = True
 
         # await self.messages.put(
         #     InternalMessage(
@@ -107,12 +115,20 @@ class Execution:
         except CancelledError:
             pass
 
-        await self.events.put(CommandExited(node=self.node, exit_code=self.exit_code))
+        await self.events.put(
+            CommandExited(
+                target=self.target,
+                command=self.command,
+                exit_code=self.exit_code,
+            )
+        )
 
         return self
 
 
-async def read_output(node: Node, process: Process, events: Fanout[Event]) -> None:
+async def read_output(
+    target: Target, command: ShellCommand, process: Process, events: Fanout[Event]
+) -> None:
     if process.stdout is None:  # pragma: unreachable
         raise Exception(f"{process} does not have an associated stream reader")
 
@@ -123,7 +139,8 @@ async def read_output(node: Node, process: Process, events: Fanout[Event]) -> No
 
         await events.put(
             CommandMessage(
-                node=node,
+                target=target,
+                command=command,
                 text=line.decode("utf-8").rstrip(),
             )
         )
