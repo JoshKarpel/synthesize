@@ -3,7 +3,13 @@ targets:
     commands:
       - type: shell
         args: pytest
+    lifecycle:
+      type: "watch"
+      paths: ["synth", "tests"]
   - id: types
     commands:
       - type: shell
         args: mypy
+    lifecycle:
+      type: "watch"
+      paths: ["synth", "tests"]

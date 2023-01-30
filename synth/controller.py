@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from asyncio import Task, create_task
+from asyncio import Task, create_task, wait
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
 from networkx import DiGraph
 from rich.console import Console, RenderableType
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
+from watchfiles import Change, awatch
 
-from synth.config import Config, Target
-from synth.events import CommandExited, CommandMessage, CommandStarted, Event
+from synth.config import Config, Target, Watch
+from synth.events import CommandExited, CommandMessage, CommandStarted, Event, WatchPathChanged
 from synth.execution import Execution
 from synth.fanout import Fanout
 
@@ -97,23 +99,41 @@ class Controller:
 
         self.executions: dict[str, Execution] = {}
         self.waiters: dict[str, Task[Execution]] = {}
+        self.watchers: dict[str, Task[None]] = {}
 
     async def start(self) -> None:
-        await self.start_ready_targets()
+        try:
+            await self.start_watchers()
+            await self.start_ready_targets()
 
+            await self.control()
+        finally:
+            for watcher in self.watchers.values():
+                watcher.cancel()
+
+            await wait(self.watchers.values(), timeout=1)
+
+            await wait(self.waiters.values())
+
+    async def control(self) -> None:
         while True:
             match await self.events_consumer.get():
                 case CommandMessage() as msg:
                     self.console.print(self.render_command_message(msg))
-                case CommandStarted() as msg:
+                case CommandStarted(target=target) as msg:
                     self.console.print(self.render_started_message(msg))
+                    self.graph.mark_running(target)
                 case CommandExited(target=target) as msg:
                     self.console.print(self.render_exited_message(msg))
                     self.graph.mark_done(target)
-                    await self.start_ready_targets()
+                case WatchPathChanged(target=target) as msg:
+                    self.console.print(self.render_watch_path_changed_message(msg))
+                    self.graph.mark_pending(target)
 
-            if self.graph.all_done():
-                break
+            await self.start_ready_targets()
+
+            if self.graph.all_done() and not self.watchers:
+                return
 
     async def start_ready_targets(self) -> None:
         for t in self.graph.ready_targets():
@@ -126,6 +146,13 @@ class Controller:
             )
             self.executions[t.id] = e
             self.waiters[t.id] = create_task(e.wait())
+
+    async def start_watchers(self) -> None:
+        for t in self.config.targets:
+            if isinstance(t.lifecycle, Watch):
+                self.watchers[t.id] = create_task(
+                    watch(target=t, paths=t.lifecycle.paths, events=self.events)
+                )
 
     def render_command_message(self, message: CommandMessage) -> RenderableType:
         prefix = Text.from_markup(
@@ -176,3 +203,41 @@ class Controller:
         g.add_row(prefix, body)
 
         return g
+
+    def render_watch_path_changed_message(self, message: WatchPathChanged) -> RenderableType:
+        prefix = Text.from_markup(
+            prefix_format.format_map({"id": message.target.id, "timestamp": message.timestamp}),
+            style=Style.parse(message.target.style).chain(Style(dim=True)),
+        )
+
+        changes = Text(", ").join(
+            Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes
+        )
+
+        body = Text.assemble(
+            "Running target ",
+            (message.target.id, message.target.style),
+            " due to detected changes: ",
+            changes,
+            style=Style(dim=True),
+        )
+
+        g = Table.grid()
+        g.add_row(prefix, body)
+
+        return g
+
+
+CHANGE_TO_STYLE = {
+    Change.added: Style(color="green"),
+    Change.deleted: Style(color="red"),
+    Change.modified: Style(color="yellow"),
+}
+
+
+async def watch(target: Target, paths: Iterable[Path], events: Fanout[Event]) -> None:
+    try:
+        async for changes in awatch(*paths):
+            await events.put(WatchPathChanged(target=target, changes=changes))
+    except RuntimeError:
+        pass

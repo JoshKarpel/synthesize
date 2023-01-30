@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import Field
+from watchfiles import Change
 
 from synth.config import ShellCommand, Target
 from synth.model import Model
@@ -27,3 +28,8 @@ class CommandMessage(Event):
     target: Target
     command: ShellCommand
     text: str
+
+
+class WatchPathChanged(Event):
+    target: Target
+    changes: set[tuple[Change, str]]
