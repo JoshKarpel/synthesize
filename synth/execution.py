@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from signal import SIGKILL, SIGTERM
 
 from synth.config import ShellCommand, Target
-from synth.events import CommandExited, CommandMessage, CommandStarted, CommandStarting, Event
+from synth.events import CommandExited, CommandMessage, CommandStarted, Event
 from synth.fanout import Fanout
 
 
@@ -33,14 +33,13 @@ class Execution:
         events: Fanout[Event],
         width: int = 80,
     ) -> Execution:
-        await events.put(CommandStarting(target=target, command=command))
-
         process = await create_subprocess_shell(
             cmd=command.args,
             stdout=PIPE,
             stderr=STDOUT,
-            env={**os.environ, "FORCE_COLOR": "true", "COLUMNS": str(width)},
+            env={**os.environ, "FORCE_COLOR": "1", "COLUMNS": str(width)},
             preexec_fn=os.setsid,
+            executable=os.getenv("SHELL"),
         )
 
         reader = create_task(

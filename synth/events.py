@@ -1,4 +1,4 @@
-import time
+from datetime import datetime
 
 from pydantic import Field
 
@@ -7,22 +7,20 @@ from synth.model import Model
 
 
 class Event(Model):
-    timestamp: float = Field(default_factory=time.time)
+    timestamp: datetime = Field(default_factory=datetime.now)
 
 
-class CommandStarting(Event):
+class CommandLifecycleEvent(Event):
     target: Target
     command: ShellCommand
 
 
-class CommandStarted(Event):
-    target: Target
-    command: ShellCommand
+class CommandStarted(CommandLifecycleEvent):
+    pass
 
 
-class CommandExited(Event):
-    target: Target
-    command: ShellCommand
+class CommandExited(CommandLifecycleEvent):
+    exit_code: int
 
 
 class CommandMessage(Event):

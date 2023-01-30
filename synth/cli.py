@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from time import monotonic
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
+from rich.text import Text
 from typer import Argument, Option, Typer
 
 from synth.config import Config
@@ -34,19 +36,20 @@ def run(
         help="If enabled, do not run actually run any commands.",
     ),
 ) -> None:
+    start_time = monotonic()
+
     console = Console()
 
     config = Config.parse_yaml(config_path.read_text())
 
-    console.print(
-        Panel(
-            JSON.from_data(config.dict()),
-            title="Configuration",
-            title_align="left",
-        )
-    )
-
     if dry:
+        console.print(
+            Panel(
+                JSON.from_data(config.dict()),
+                title="Configuration",
+                title_align="left",
+            )
+        )
         return
 
     controller = Controller(config=config, console=console)
@@ -54,3 +57,7 @@ def run(
         asyncio.run(controller.start())
     except KeyboardInterrupt:
         raise Exit(code=0)
+    finally:
+        end_time = monotonic()
+
+        console.print(Text(f"Finished in {end_time - start_time:.6f} seconds."))
