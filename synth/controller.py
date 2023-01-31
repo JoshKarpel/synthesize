@@ -1,22 +1,32 @@
 from __future__ import annotations
 
-from asyncio import Task, create_task, wait
+from asyncio import Task, create_task, sleep, wait
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
 from networkx import DiGraph
-from rich.console import Console, RenderableType
+from rich.console import Console, Group, RenderableType
+from rich.live import Live
+from rich.rule import Rule
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
 from watchfiles import Change, awatch
 
-from synth.config import Config, Target, Watch
-from synth.events import CommandExited, CommandMessage, CommandStarted, Event, WatchPathChanged
+from synth.config import Config, Restart, Target, Watch
+from synth.events import (
+    CommandExited,
+    CommandMessage,
+    CommandStarted,
+    Event,
+    Heartbeat,
+    WatchPathChanged,
+)
 from synth.execution import Execution
 from synth.fanout import Fanout
+from synth.utils import delay
 
 
 class TargetStatus(Enum):
@@ -85,12 +95,14 @@ class State:
 
 
 prefix_format = "{timestamp:%H:%M:%S} {id} "
+internal_format = "{timestamp:%H:%M:%S} "
 
 
 class Controller:
     def __init__(self, config: Config, console: Console):
         self.config = config
         self.console = console
+        self.live = Live(console=console, auto_refresh=False)
 
         self.graph = State.from_targets(self.config.targets)
 
@@ -100,24 +112,27 @@ class Controller:
         self.executions: dict[str, Execution] = {}
         self.waiters: dict[str, Task[Execution]] = {}
         self.watchers: dict[str, Task[None]] = {}
+        self.heartbeat: Task[None] | None = None
 
     async def start(self) -> None:
-        try:
-            await self.start_watchers()
-            await self.start_ready_targets()
+        with self.live:
+            try:
+                await self.start_hearbeat()
+                await self.start_watchers()
+                await self.start_ready_targets()
 
-            await self.control()
-        finally:
-            for watcher in self.watchers.values():
-                watcher.cancel()
+                await self.control()
+            finally:
+                for watcher in self.watchers.values():
+                    watcher.cancel()
 
-            await wait(self.watchers.values(), timeout=1)
+                await wait(self.watchers.values(), timeout=1)
 
-            await wait(self.waiters.values())
+                await wait(self.waiters.values())
 
     async def control(self) -> None:
         while True:
-            match await self.events_consumer.get():
+            match event := await self.events_consumer.get():
                 case CommandMessage() as msg:
                     self.console.print(self.render_command_message(msg))
                 case CommandStarted(target=target) as msg:
@@ -125,27 +140,69 @@ class Controller:
                     self.graph.mark_running(target)
                 case CommandExited(target=target) as msg:
                     self.console.print(self.render_exited_message(msg))
-                    self.graph.mark_done(target)
+
+                    lifecycle = target.lifecycle
+                    if isinstance(lifecycle, Restart):
+                        self.graph.mark_pending(target)
+                    else:
+                        self.graph.mark_done(target)
                 case WatchPathChanged(target=target) as msg:
                     self.console.print(self.render_watch_path_changed_message(msg))
                     self.graph.mark_pending(target)
 
             await self.start_ready_targets()
 
+            self.live.update(self.info(event), refresh=True)
+
             if self.graph.all_done() and not self.watchers:
                 return
+
+    def info(self, event: Event) -> RenderableType:
+        table = Table.grid()
+
+        running_targets = self.graph.running_targets()
+        if running_targets:
+            running_targets_item = Text.assemble(
+                "Running: ",
+                Text(", ").join(Text(t.id, style=t.style) for t in running_targets),
+            )
+            rule_style = Style(color="green")
+        else:
+            running_targets_item = Text("Waiting...")
+            rule_style = Style(color="yellow")
+
+        table.add_row(
+            internal_format.format_map({"timestamp": event.timestamp}), running_targets_item
+        )
+
+        return Group(Rule(style=rule_style), table)
+
+    async def start_hearbeat(self) -> None:
+        async def heartbeat() -> None:
+            while True:
+                await sleep(1 / 30)
+                await self.events.put(Heartbeat())
+
+        self.heartbeat = create_task(heartbeat())
 
     async def start_ready_targets(self) -> None:
         for t in self.graph.ready_targets():
             self.graph.mark_running(t)
-            e = await Execution.start(
-                target=t,
-                command=t.commands[0],
-                events=self.events,
-                width=80,
-            )
-            self.executions[t.id] = e
-            self.waiters[t.id] = create_task(e.wait())
+
+            async def start() -> None:
+                e = await Execution.start(
+                    target=t,
+                    command=t.commands[0],
+                    events=self.events,
+                    width=80,
+                )
+                self.executions[t.id] = e
+                self.waiters[t.id] = create_task(e.wait())
+
+            if isinstance(t.lifecycle, Restart) and t.id in self.executions:
+                delay(t.lifecycle.delay, start)
+            else:
+                await start()
 
     async def start_watchers(self) -> None:
         for t in self.config.targets:

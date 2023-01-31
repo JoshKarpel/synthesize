@@ -33,3 +33,7 @@ class CommandMessage(Event):
 class WatchPathChanged(Event):
     target: Target
     changes: set[tuple[Change, str]]
+
+
+class Heartbeat(Event):
+    pass

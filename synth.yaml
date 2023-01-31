@@ -13,3 +13,9 @@ targets:
     lifecycle:
       type: "watch"
       paths: ["synth", "tests"]
+  - id: docs
+    commands:
+      - type: shell
+        args: mkdocs serve --strict --watch synth
+    lifecycle:
+      type: "restart"
