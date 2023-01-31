@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import random
-from pathlib import Path
+from colorsys import hsv_to_rgb
+from random import random
 from typing import Literal
 
 from pydantic import Field
+from rich.color import Color
 
 from synth.model import Model
 
@@ -28,11 +29,16 @@ class Restart(Lifecycle):
 class Watch(Lifecycle):
     type: Literal["watch"] = "watch"
 
-    paths: tuple[Path, ...] = Field(...)
+    paths: tuple[str, ...] = Field(...)
 
 
-def random_style() -> str:
-    return f"#{''.join(random.choices('ABCDEF', k=6))}"
+def random_color() -> str:
+    triplet = Color.from_rgb(*(x * 255 for x in hsv_to_rgb(random(), 1, 0.7))).triplet
+
+    if triplet is None:
+        raise Exception("Failed to generate random color; please try again.")
+
+    return triplet.hex
 
 
 class Command(Model):
@@ -54,7 +60,7 @@ class Target(Model):
     after: tuple[str, ...] = Field(default=())
     lifecycle: Once | Restart | Watch = Once()
 
-    style: str = Field(default_factory=random_style)
+    color: str = Field(default_factory=random_color)
 
 
 class Config(Model):

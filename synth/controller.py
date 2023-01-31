@@ -124,26 +124,30 @@ class Controller:
         if not self.state.targets():
             return
 
-        try:
-            with self.live:
+        with self.live:
+            try:
                 await self.start_heartbeat()
                 await self.start_watchers()
                 await self.start_ready_targets()
 
                 await self.control()
-        finally:
-            if self.heartbeat is not None:
-                self.heartbeat.cancel()
+            finally:
+                self.live.update(Group(Rule(), Text("Shutting down...")), refresh=True)
 
-            for watcher in self.watchers.values():
-                watcher.cancel()
+                if self.heartbeat is not None:
+                    self.heartbeat.cancel()
 
-            await gather(*self.watchers.values(), return_exceptions=True)
+                for watcher in self.watchers.values():
+                    watcher.cancel()
 
-            for execution in self.executions.values():
-                await execution.terminate()
+                await gather(*self.watchers.values(), return_exceptions=True)
 
-            await gather(*(e.wait() for e in self.executions.values()), return_exceptions=True)
+                for execution in self.executions.values():
+                    await execution.terminate()
+
+                await gather(*(e.wait() for e in self.executions.values()), return_exceptions=True)
+
+                self.live.update(Rule(), refresh=True)
 
     async def control(self) -> None:
         while True:
@@ -185,7 +189,9 @@ class Controller:
         if running_targets:
             running_targets_item = Text.assemble(
                 "Running: ",
-                Text(", ").join(Text(t.id, style=t.style) for t in running_targets),
+                Text(" ").join(
+                    Text(t.id, style=Style(color="black", bgcolor=t.color)) for t in running_targets
+                ),
             )
             rule_style = Style(color="green")
         else:
@@ -247,7 +253,7 @@ class Controller:
     def render_command_message(self, message: CommandMessage) -> RenderableType:
         prefix = Text(
             self.render_prefix(message),
-            style=Style.parse(message.target.style),
+            style=Style(color=message.target.color),
         )
 
         body = Text.from_ansi(message.text)
@@ -262,7 +268,7 @@ class Controller:
     ) -> RenderableType:
         prefix = Text.from_markup(
             self.render_prefix(message),
-            style=Style.parse(message.target.style),
+            style=Style(color=message.target.color),
         )
 
         parts: tuple[str | tuple[str, str] | tuple[str, Style] | Text, ...]
@@ -271,13 +277,13 @@ class Controller:
             case CommandStarted(target=target, command=command, pid=pid):
                 parts = (
                     "Command ",
-                    (command.args, target.style),
+                    (command.args, target.color),
                     f" started (pid {pid})",
                 )
             case CommandExited(target=target, command=command, pid=pid, exit_code=exit_code):
                 parts = (
                     "Command ",
-                    (command.args, target.style),
+                    (command.args, target.color),
                     f" (pid {pid}) exited with code ",
                     (str(exit_code), "green" if exit_code == 0 else "red"),
                 )
@@ -288,15 +294,13 @@ class Controller:
 
                 parts = (
                     "Running target ",
-                    (target.id, target.style),
+                    (target.id, target.color),
                     " due to detected changes: ",
                     changes,
                 )
 
         body = Text.assemble(
-            "[ ",
             *parts,
-            " ]",
             style=Style(dim=True),
         )
 
@@ -327,7 +331,7 @@ CHANGE_TO_STYLE = {
 }
 
 
-async def watch(target: Target, paths: Iterable[Path], events: Fanout[Event]) -> None:
+async def watch(target: Target, paths: Iterable[str | Path], events: Fanout[Event]) -> None:
     try:
         async for changes in awatch(*paths):
             await events.put(WatchPathChanged(target=target, changes=changes))

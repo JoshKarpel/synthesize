@@ -63,4 +63,4 @@ def run(
     finally:
         end_time = monotonic()
 
-        console.print(Text(f"Finished in {end_time - start_time:.6f} seconds."))
+        console.print(Text(f"Finished in {end_time - start_time:.3f} seconds."))
