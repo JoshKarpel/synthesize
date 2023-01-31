@@ -187,10 +187,6 @@ class Controller:
 
         running_targets = self.state.running_targets()
 
-        watching_targets = {
-            t for t in self.state.targets() if isinstance(t.lifecycle, Watch)
-        } - running_targets
-
         parts = [
             Text.assemble(
                 "Running ",
