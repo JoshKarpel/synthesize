@@ -16,6 +16,6 @@ targets:
   - id: docs
     commands:
       - type: shell
-        args: mkdocs serve --strict --watch synth
+        args: mkdocs serve --strict
     lifecycle:
       type: "restart"

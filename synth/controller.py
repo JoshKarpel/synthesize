@@ -3,7 +3,9 @@ from __future__ import annotations
 from asyncio import Task, create_task, sleep, wait
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
+from functools import cached_property
 from pathlib import Path
 
 from networkx import DiGraph
@@ -18,6 +20,7 @@ from watchfiles import Change, awatch
 from synth.config import Config, Restart, Target, Watch
 from synth.events import (
     CommandExited,
+    CommandLifecycleEvent,
     CommandMessage,
     CommandStarted,
     Event,
@@ -93,6 +96,9 @@ class State:
     def num_targets(self) -> int:
         return len(self.graph)
 
+    def targets(self) -> set[Target]:
+        return set(self.id_to_target.values())
+
 
 prefix_format = "{timestamp:%H:%M:%S} {id} "
 internal_format = "{timestamp:%H:%M:%S} "
@@ -127,6 +133,9 @@ class Controller:
                     watcher.cancel()
 
                 await wait(self.watchers.values(), timeout=1)
+
+                for execution in self.executions.values():
+                    await execution.terminate()
 
                 await wait(self.waiters.values())
 
@@ -194,7 +203,7 @@ class Controller:
                     target=t,
                     command=t.commands[0],
                     events=self.events,
-                    width=80,
+                    width=self.console.width - self.prefix_width,
                 )
                 self.executions[t.id] = e
                 self.waiters[t.id] = create_task(e.wait())
@@ -211,9 +220,16 @@ class Controller:
                     watch(target=t, paths=t.lifecycle.paths, events=self.events)
                 )
 
+    def render_prefix(
+        self, message: CommandMessage | CommandLifecycleEvent | WatchPathChanged
+    ) -> str:
+        return prefix_format.format_map(
+            {"id": message.target.id, "timestamp": message.timestamp}
+        ).ljust(self.prefix_width)
+
     def render_command_message(self, message: CommandMessage) -> RenderableType:
         prefix = Text.from_markup(
-            prefix_format.format_map({"id": message.target.id, "timestamp": message.timestamp}),
+            self.render_prefix(message),
             style=Style.parse(message.target.style),
         )
 
@@ -226,7 +242,7 @@ class Controller:
 
     def render_started_message(self, message: CommandStarted) -> RenderableType:
         prefix = Text.from_markup(
-            prefix_format.format_map({"id": message.target.id, "timestamp": message.timestamp}),
+            self.render_prefix(message),
             style=Style.parse(message.target.style).chain(Style(dim=True)),
         )
 
@@ -244,7 +260,7 @@ class Controller:
 
     def render_exited_message(self, message: CommandExited) -> RenderableType:
         prefix = Text.from_markup(
-            prefix_format.format_map({"id": message.target.id, "timestamp": message.timestamp}),
+            self.render_prefix(message),
             style=Style.parse(message.target.style).chain(Style(dim=True)),
         )
 
@@ -263,7 +279,7 @@ class Controller:
 
     def render_watch_path_changed_message(self, message: WatchPathChanged) -> RenderableType:
         prefix = Text.from_markup(
-            prefix_format.format_map({"id": message.target.id, "timestamp": message.timestamp}),
+            self.render_prefix(message),
             style=Style.parse(message.target.style).chain(Style(dim=True)),
         )
 
@@ -283,6 +299,20 @@ class Controller:
         g.add_row(prefix, body)
 
         return g
+
+    @cached_property
+    def prefix_width(self) -> int:
+        now = datetime.now()
+
+        return len(
+            max(
+                (
+                    prefix_format.format_map({"timestamp": now, "id": t.id})
+                    for t in self.graph.targets()
+                ),
+                key=len,
+            )
+        )
 
 
 CHANGE_TO_STYLE = {
