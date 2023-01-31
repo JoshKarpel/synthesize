@@ -45,8 +45,8 @@ class State:
     id_to_status: dict[str, TargetStatus]
 
     @classmethod
-    def from_targets(cls, targets: Iterable[Target]) -> State:
-        id_to_target = {target.id: target for target in targets}
+    def from_targets(cls, config: Config, target_ids: set[str]) -> State:
+        id_to_target = {target.id: target for target in config.targets if target.id in target_ids}
 
         graph = DiGraph()
 
@@ -105,12 +105,12 @@ internal_format = "{timestamp:%H:%M:%S} "
 
 
 class Controller:
-    def __init__(self, config: Config, console: Console):
+    def __init__(self, config: Config, state: State, console: Console):
         self.config = config
         self.console = console
-        self.live = Live(console=console, auto_refresh=False)
+        self.state = state
 
-        self.graph = State.from_targets(self.config.targets)
+        self.live = Live(console=console, auto_refresh=False)
 
         self.events: Fanout[Event] = Fanout()
         self.events_consumer = self.events.consumer()
@@ -121,6 +121,9 @@ class Controller:
         self.heartbeat: Task[None] | None = None
 
     async def start(self) -> None:
+        if not self.state.targets():
+            return
+
         with self.live:
             try:
                 await self.start_heartbeat()
@@ -151,33 +154,34 @@ class Controller:
                 case CommandStarted(target=target) as msg:
                     self.console.print(self.render_lifecycle_message(msg))
 
-                    self.graph.mark_running(target)
+                    self.state.mark_running(target)
 
                 case CommandExited(target=target) as msg:
                     self.console.print(self.render_lifecycle_message(msg))
 
                     if isinstance(target.lifecycle, Restart):
-                        self.graph.mark_pending(target)
+                        self.state.mark_pending(target)
                     else:
-                        self.graph.mark_done(target)
+                        self.state.mark_done(target)
 
                 case WatchPathChanged(target=target) as msg:
                     self.console.print(self.render_lifecycle_message(msg))
 
                     await self.executions[target.id].terminate()
-                    self.graph.mark_pending(target)
+
+                    self.state.mark_pending(target)
 
             await self.start_ready_targets()
 
             self.live.update(self.info(event), refresh=True)
 
-            if self.graph.all_done() and not self.watchers:
+            if self.state.all_done() and not self.watchers:
                 return
 
     def info(self, event: Event) -> RenderableType:
         table = Table.grid()
 
-        running_targets = sorted(self.graph.running_targets(), key=lambda t: t.id)
+        running_targets = sorted(self.state.running_targets(), key=lambda t: t.id)
         if running_targets:
             running_targets_item = Text.assemble(
                 "Running: ",
@@ -203,12 +207,12 @@ class Controller:
         self.heartbeat = create_task(heartbeat())
 
     async def start_ready_targets(self) -> None:
-        for t in self.graph.ready_targets():
+        for t in self.state.ready_targets():
             if e := self.executions.get(t.id):
                 if not e.has_exited:
                     continue
 
-            self.graph.mark_running(t)
+            self.state.mark_running(t)
 
             async def start() -> None:
                 e = await Execution.start(
@@ -309,7 +313,7 @@ class Controller:
             max(
                 (
                     prefix_format.format_map({"timestamp": now, "id": t.id})
-                    for t in self.graph.targets()
+                    for t in self.state.targets()
                 ),
                 key=len,
             )

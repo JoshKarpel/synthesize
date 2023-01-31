@@ -13,7 +13,7 @@ from rich.text import Text
 from typer import Argument, Option, Typer
 
 from synth.config import Config
-from synth.controller import Controller
+from synth.controller import Controller, State
 
 ru.STYLE_HELPTEXT = ""
 
@@ -22,9 +22,9 @@ cli = Typer()
 
 @cli.command()
 def run(
-    config_path: Path = Argument(
+    target: list[str] = Argument(None),
+    config: Path = Option(
         default="synth.yaml",
-        metavar="config",
         exists=True,
         readable=True,
         show_default=True,
@@ -40,19 +40,22 @@ def run(
 
     console = Console()
 
-    config = Config.parse_yaml(config_path.read_text())
+    parsed_config = Config.parse_yaml(config.read_text())
 
     if dry:
         console.print(
             Panel(
-                JSON.from_data(config.dict()),
+                JSON.from_data(parsed_config.dict()),
                 title="Configuration",
                 title_align="left",
             )
         )
         return
 
-    controller = Controller(config=config, console=console)
+    state = State.from_targets(
+        config=parsed_config, target_ids=set(target or {t.id for t in parsed_config.targets})
+    )
+    controller = Controller(config=parsed_config, state=state, console=console)
     try:
         asyncio.run(controller.start())
     except KeyboardInterrupt:
