@@ -101,7 +101,7 @@ class State:
 
 
 prefix_format = "{timestamp:%H:%M:%S} {id}  "
-internal_format = "{timestamp:%H:%M:%S} "
+internal_format = "{timestamp:%H:%M:%S}"
 
 
 class Controller:
@@ -183,26 +183,32 @@ class Controller:
                 return
 
     def info(self, event: Event) -> RenderableType:
-        table = Table.grid()
+        table = Table.grid(padding=(1, 1, 0, 0))
 
-        running_targets = sorted(self.state.running_targets(), key=lambda t: t.id)
-        if running_targets:
-            running_targets_item = Text.assemble(
-                "Running: ",
+        running_targets = self.state.running_targets()
+
+        watching_targets = {
+            t for t in self.state.targets() if isinstance(t.lifecycle, Watch)
+        } - running_targets
+
+        parts = [
+            Text.assemble(
+                "Running ",
                 Text(" ").join(
-                    Text(t.id, style=Style(color="black", bgcolor=t.color)) for t in running_targets
+                    Text(t.id, style=Style(color="black", bgcolor=t.color))
+                    for t in sorted(running_targets, key=lambda t: t.id)
                 ),
             )
-            rule_style = Style(color="green")
-        else:
-            running_targets_item = Text("Waiting...")
-            rule_style = Style(color="yellow")
+            if running_targets
+            else Text(),
+        ]
 
         table.add_row(
-            internal_format.format_map({"timestamp": event.timestamp}), running_targets_item
+            internal_format.format_map({"timestamp": event.timestamp}),
+            *parts,
         )
 
-        return Group(Rule(style=rule_style), table)
+        return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)
 
     async def start_heartbeat(self) -> None:
         async def heartbeat() -> None:
