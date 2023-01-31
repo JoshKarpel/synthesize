@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from asyncio import Task, create_task, sleep, wait
+from asyncio import Task, create_task, gather, sleep
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
@@ -124,26 +124,26 @@ class Controller:
         if not self.state.targets():
             return
 
-        with self.live:
-            try:
+        try:
+            with self.live:
                 await self.start_heartbeat()
                 await self.start_watchers()
                 await self.start_ready_targets()
 
                 await self.control()
-            finally:
-                if self.heartbeat is not None:
-                    self.heartbeat.cancel()
+        finally:
+            if self.heartbeat is not None:
+                self.heartbeat.cancel()
 
-                for watcher in self.watchers.values():
-                    watcher.cancel()
+            for watcher in self.watchers.values():
+                watcher.cancel()
 
-                await wait(self.watchers.values(), timeout=1)
+            await gather(*self.watchers.values(), return_exceptions=True)
 
-                for execution in self.executions.values():
-                    await execution.terminate()
+            for execution in self.executions.values():
+                await execution.terminate()
 
-                await wait(self.waiters.values(), timeout=30)
+            await gather(*(e.wait() for e in self.executions.values()), return_exceptions=True)
 
     async def control(self) -> None:
         while True:
@@ -268,17 +268,17 @@ class Controller:
         parts: tuple[str | tuple[str, str] | tuple[str, Style] | Text, ...]
 
         match message:
-            case CommandStarted(target=target, command=command):
+            case CommandStarted(target=target, command=command, pid=pid):
                 parts = (
                     "Command ",
                     (command.args, target.style),
-                    " started",
+                    f" started (pid {pid})",
                 )
-            case CommandExited(target=target, command=command, exit_code=exit_code):
+            case CommandExited(target=target, command=command, pid=pid, exit_code=exit_code):
                 parts = (
                     "Command ",
                     (command.args, target.style),
-                    " exited with code ",
+                    f" (pid {pid}) exited with code ",
                     (str(exit_code), "green" if exit_code == 0 else "red"),
                 )
             case WatchPathChanged(target=target):

@@ -14,6 +14,7 @@ class Event(Model):
 class CommandLifecycleEvent(Event):
     target: Target
     command: ShellCommand
+    pid: int
 
 
 class CommandStarted(CommandLifecycleEvent):

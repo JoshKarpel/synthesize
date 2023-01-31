@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from asyncio import CancelledError, Task, create_task
+from asyncio import Task, create_task
 from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_shell
 from dataclasses import dataclass, field
 from signal import SIGKILL, SIGTERM
@@ -50,7 +50,7 @@ class Execution:
             name=f"Read output for {command.args!r}",
         )
 
-        await events.put(CommandStarted(target=target, command=command))
+        await events.put(CommandStarted(target=target, command=command, pid=process.pid))
 
         return cls(
             target=target,
@@ -91,15 +91,13 @@ class Execution:
     async def wait(self) -> Execution:
         await self.process.wait()
 
-        try:
-            await self.reader
-        except CancelledError:
-            pass
+        await self.reader
 
         await self.events.put(
             CommandExited(
                 target=self.target,
                 command=self.command,
+                pid=self.pid,
                 exit_code=self.exit_code,
             )
         )
