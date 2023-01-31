@@ -100,7 +100,7 @@ class State:
         return set(self.id_to_target.values())
 
 
-prefix_format = "{timestamp:%H:%M:%S} {id} "
+prefix_format = "{timestamp:%H:%M:%S} {id}  "
 internal_format = "{timestamp:%H:%M:%S} "
 
 
@@ -123,12 +123,15 @@ class Controller:
     async def start(self) -> None:
         with self.live:
             try:
-                await self.start_hearbeat()
+                await self.start_heartbeat()
                 await self.start_watchers()
                 await self.start_ready_targets()
 
                 await self.control()
             finally:
+                if self.heartbeat is not None:
+                    self.heartbeat.cancel()
+
                 for watcher in self.watchers.values():
                     watcher.cancel()
 
@@ -137,26 +140,31 @@ class Controller:
                 for execution in self.executions.values():
                     await execution.terminate()
 
-                await wait(self.waiters.values())
+                await wait(self.waiters.values(), timeout=30)
 
     async def control(self) -> None:
         while True:
             match event := await self.events_consumer.get():
                 case CommandMessage() as msg:
                     self.console.print(self.render_command_message(msg))
-                case CommandStarted(target=target) as msg:
-                    self.console.print(self.render_started_message(msg))
-                    self.graph.mark_running(target)
-                case CommandExited(target=target) as msg:
-                    self.console.print(self.render_exited_message(msg))
 
-                    lifecycle = target.lifecycle
-                    if isinstance(lifecycle, Restart):
+                case CommandStarted(target=target) as msg:
+                    self.console.print(self.render_lifecycle_message(msg))
+
+                    self.graph.mark_running(target)
+
+                case CommandExited(target=target) as msg:
+                    self.console.print(self.render_lifecycle_message(msg))
+
+                    if isinstance(target.lifecycle, Restart):
                         self.graph.mark_pending(target)
                     else:
                         self.graph.mark_done(target)
+
                 case WatchPathChanged(target=target) as msg:
-                    self.console.print(self.render_watch_path_changed_message(msg))
+                    self.console.print(self.render_lifecycle_message(msg))
+
+                    await self.executions[target.id].terminate()
                     self.graph.mark_pending(target)
 
             await self.start_ready_targets()
@@ -169,7 +177,7 @@ class Controller:
     def info(self, event: Event) -> RenderableType:
         table = Table.grid()
 
-        running_targets = self.graph.running_targets()
+        running_targets = sorted(self.graph.running_targets(), key=lambda t: t.id)
         if running_targets:
             running_targets_item = Text.assemble(
                 "Running: ",
@@ -186,7 +194,7 @@ class Controller:
 
         return Group(Rule(style=rule_style), table)
 
-    async def start_hearbeat(self) -> None:
+    async def start_heartbeat(self) -> None:
         async def heartbeat() -> None:
             while True:
                 await sleep(1 / 30)
@@ -196,6 +204,10 @@ class Controller:
 
     async def start_ready_targets(self) -> None:
         for t in self.graph.ready_targets():
+            if e := self.executions.get(t.id):
+                if not e.has_exited:
+                    continue
+
             self.graph.mark_running(t)
 
             async def start() -> None:
@@ -208,6 +220,7 @@ class Controller:
                 self.executions[t.id] = e
                 self.waiters[t.id] = create_task(e.wait())
 
+            # When restarting after first execution, delay
             if isinstance(t.lifecycle, Restart) and t.id in self.executions:
                 delay(t.lifecycle.delay, start)
             else:
@@ -228,7 +241,7 @@ class Controller:
         ).ljust(self.prefix_width)
 
     def render_command_message(self, message: CommandMessage) -> RenderableType:
-        prefix = Text.from_markup(
+        prefix = Text(
             self.render_prefix(message),
             style=Style.parse(message.target.style),
         )
@@ -240,58 +253,46 @@ class Controller:
 
         return g
 
-    def render_started_message(self, message: CommandStarted) -> RenderableType:
+    def render_lifecycle_message(
+        self, message: CommandLifecycleEvent | WatchPathChanged
+    ) -> RenderableType:
         prefix = Text.from_markup(
             self.render_prefix(message),
-            style=Style.parse(message.target.style).chain(Style(dim=True)),
+            style=Style.parse(message.target.style),
         )
+
+        parts: tuple[str | tuple[str, str] | tuple[str, Style] | Text, ...]
+
+        match message:
+            case CommandStarted(target=target, command=command):
+                parts = (
+                    "Command ",
+                    (command.args, target.style),
+                    " started",
+                )
+            case CommandExited(target=target, command=command, exit_code=exit_code):
+                parts = (
+                    "Command ",
+                    (command.args, target.style),
+                    " exited with code ",
+                    (str(exit_code), "green" if exit_code == 0 else "red"),
+                )
+            case WatchPathChanged(target=target):
+                changes = Text(", ").join(
+                    Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes
+                )
+
+                parts = (
+                    "Running target ",
+                    (target.id, target.style),
+                    " due to detected changes: ",
+                    changes,
+                )
 
         body = Text.assemble(
-            "Command ",
-            (message.command.args, message.target.style),
-            " started",
-            style=Style(dim=True),
-        )
-
-        g = Table.grid()
-        g.add_row(prefix, body)
-
-        return g
-
-    def render_exited_message(self, message: CommandExited) -> RenderableType:
-        prefix = Text.from_markup(
-            self.render_prefix(message),
-            style=Style.parse(message.target.style).chain(Style(dim=True)),
-        )
-
-        body = Text.assemble(
-            "Command ",
-            (message.command.args, message.target.style),
-            " exited with code ",
-            (str(message.exit_code), "green" if message.exit_code == 0 else "red"),
-            style=Style(dim=True),
-        )
-
-        g = Table.grid()
-        g.add_row(prefix, body)
-
-        return g
-
-    def render_watch_path_changed_message(self, message: WatchPathChanged) -> RenderableType:
-        prefix = Text.from_markup(
-            self.render_prefix(message),
-            style=Style.parse(message.target.style).chain(Style(dim=True)),
-        )
-
-        changes = Text(", ").join(
-            Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes
-        )
-
-        body = Text.assemble(
-            "Running target ",
-            (message.target.id, message.target.style),
-            " due to detected changes: ",
-            changes,
+            "[ ",
+            *parts,
+            " ]",
             style=Style(dim=True),
         )
 

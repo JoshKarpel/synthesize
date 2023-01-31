@@ -23,8 +23,6 @@ class Execution:
 
     width: int
 
-    was_killed: bool = False
-
     @classmethod
     async def start(
         cls,
@@ -82,27 +80,11 @@ class Execution:
         if self.has_exited:
             return None
 
-        # self.was_killed = True
-
-        # await self.messages.put(
-        #     InternalMessage(
-        #         f"Terminating command: {self.config.command_string!r}", verbosity=Verbosity.INFO
-        #     )
-        # )
-
         self._send_signal(SIGTERM)
 
     async def kill(self) -> None:
         if self.has_exited:
             return None
-
-        # self.was_killed = True
-
-        # await self.messages.put(
-        #     InternalMessage(
-        #         f"Killing command: {self.config.command_string!r}", verbosity=Verbosity.INFO
-        #     )
-        # )INFO
 
         self._send_signal(SIGKILL)
 
