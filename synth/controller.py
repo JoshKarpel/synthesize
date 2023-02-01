@@ -143,7 +143,7 @@ class Controller:
                 await gather(*self.watchers.values(), return_exceptions=True)
 
                 for execution in self.executions.values():
-                    await execution.terminate()
+                    execution.terminate()
 
                 await gather(*(e.wait() for e in self.executions.values()), return_exceptions=True)
 
@@ -171,7 +171,7 @@ class Controller:
                 case WatchPathChanged(target=target) as msg:
                     self.console.print(self.render_lifecycle_message(msg))
 
-                    await self.executions[target.id].terminate()
+                    self.executions[target.id].terminate()
 
                     self.state.mark_pending(target)
 

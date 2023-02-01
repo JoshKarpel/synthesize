@@ -76,13 +76,13 @@ class Execution:
     def _send_signal(self, signal: int) -> None:
         os.killpg(os.getpgid(self.process.pid), signal)
 
-    async def terminate(self) -> None:
+    def terminate(self) -> None:
         if self.has_exited:
             return None
 
         self._send_signal(SIGTERM)
 
-    async def kill(self) -> None:
+    def kill(self) -> None:
         if self.has_exited:
             return None
 
