@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import os
-from asyncio import Task, create_task
+from asyncio import Queue, Task, create_task
 from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_shell
 from dataclasses import dataclass, field
 from signal import SIGKILL, SIGTERM
 
 from synth.config import ShellCommand, Target
-from synth.events import CommandExited, CommandMessage, CommandStarted, Event
-from synth.fanout import Fanout
+from synth.messages import CommandExited, CommandMessage, CommandStarted, Message
 
 
 @dataclass(frozen=True)
@@ -16,7 +15,7 @@ class Execution:
     target: Target
     command: ShellCommand
 
-    events: Fanout[Event] = field(repr=False)
+    events: Queue[Message] = field(repr=False)
 
     process: Process
     reader: Task[None]
@@ -28,7 +27,7 @@ class Execution:
         cls,
         target: Target,
         command: ShellCommand,
-        events: Fanout[Event],
+        events: Queue[Message],
         width: int = 80,
     ) -> Execution:
         process = await create_subprocess_shell(
@@ -106,7 +105,7 @@ class Execution:
 
 
 async def read_output(
-    target: Target, command: ShellCommand, process: Process, events: Fanout[Event]
+    target: Target, command: ShellCommand, process: Process, events: Queue[Message]
 ) -> None:
     if process.stdout is None:  # pragma: unreachable
         raise Exception(f"{process} does not have an associated stream reader")

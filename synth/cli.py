@@ -13,7 +13,8 @@ from rich.text import Text
 from typer import Argument, Option, Typer
 
 from synth.config import Config
-from synth.controller import Controller, State
+from synth.orchestrator import Orchestrator
+from synth.state import State
 
 ru.STYLE_HELPTEXT = ""
 
@@ -55,7 +56,7 @@ def run(
     state = State.from_targets(
         config=parsed_config, target_ids=set(target or {t.id for t in parsed_config.targets})
     )
-    controller = Controller(config=parsed_config, state=state, console=console)
+    controller = Orchestrator(config=parsed_config, state=state, console=console)
     try:
         asyncio.run(controller.start())
     except KeyboardInterrupt:

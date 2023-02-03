@@ -7,11 +7,11 @@ from synth.config import ShellCommand, Target
 from synth.model import Model
 
 
-class Event(Model):
+class Message(Model):
     timestamp: datetime = Field(default_factory=datetime.now)
 
 
-class CommandLifecycleEvent(Event):
+class CommandLifecycleEvent(Message):
     target: Target
     command: ShellCommand
     pid: int
@@ -25,16 +25,20 @@ class CommandExited(CommandLifecycleEvent):
     exit_code: int
 
 
-class CommandMessage(Event):
+class CommandMessage(Message):
     target: Target
     command: ShellCommand
     text: str
 
 
-class WatchPathChanged(Event):
+class WatchPathChanged(Message):
     target: Target
     changes: set[tuple[Change, str]]
 
 
-class Heartbeat(Event):
+class Heartbeat(Message):
+    pass
+
+
+class Quit(Message):
     pass
