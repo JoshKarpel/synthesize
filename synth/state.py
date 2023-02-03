@@ -12,7 +12,8 @@ from synth.config import Config, Target
 class NodeStatus(Enum):
     Pending = "pending"
     Running = "running"
-    Done = "done"
+    Succeeded = "succeeded"
+    Failed = "failed"
 
 
 Node = tuple[str, int]
@@ -71,12 +72,16 @@ class State:
             for id, idx in self.graph.nodes
             if self.node_to_status[(id, idx)] is NodeStatus.Pending
             and all(
-                self.node_to_status[a] is NodeStatus.Done for a in ancestors(self.graph, (id, idx))
+                self.node_to_status[a] is NodeStatus.Succeeded
+                for a in ancestors(self.graph, (id, idx))
             )
         }
 
-    def mark_done(self, target: Target, idx: int) -> None:
-        self.node_to_status[target.id, idx] = NodeStatus.Done
+    def mark_success(self, target: Target, idx: int) -> None:
+        self.node_to_status[target.id, idx] = NodeStatus.Succeeded
+
+    def mark_failure(self, target: Target, idx: int) -> None:
+        self.node_to_status[target.id, idx] = NodeStatus.Failed
 
     def mark_pending(self, target: Target, idx: int) -> None:
         self.node_to_status[target.id, idx] = NodeStatus.Pending
@@ -89,7 +94,7 @@ class State:
         self.node_to_status[target.id, idx] = NodeStatus.Running
 
     def all_done(self) -> bool:
-        return all(status is NodeStatus.Done for status in self.node_to_status.values())
+        return all(status is NodeStatus.Succeeded for status in self.node_to_status.values())
 
     def num_targets(self) -> int:
         return len(self.graph)

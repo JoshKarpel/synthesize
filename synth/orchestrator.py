@@ -68,11 +68,14 @@ class Orchestrator:
                 case CommandStarted(target=target, idx=idx):
                     self.state.mark_running(target, idx)
 
-                case CommandExited(target=target, idx=idx):
+                case CommandExited(target=target, idx=idx, exit_code=exit_code):
                     if isinstance(target.lifecycle, Restart):
                         self.state.mark_pending(target, idx)
                     else:
-                        self.state.mark_done(target, idx)
+                        if exit_code == 0:
+                            self.state.mark_success(target, idx)
+                        else:
+                            self.state.mark_failure(target, idx)
 
                 case WatchPathChanged(target=target):
                     for idx in range(len(target.commands)):
@@ -94,7 +97,7 @@ class Orchestrator:
     async def start_heartbeat(self) -> None:
         async def heartbeat() -> None:
             while True:
-                await sleep(1 / 30)
+                await sleep(1 / 10)
                 await self.inbox.put(Heartbeat())
 
         self.heartbeat = create_task(heartbeat())
