@@ -8,7 +8,7 @@ from enum import Enum
 from functools import cached_property
 from pathlib import Path
 
-from networkx import DiGraph
+from networkx import DiGraph, ancestors
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
 from rich.rule import Rule
@@ -46,7 +46,7 @@ class State:
 
     @classmethod
     def from_targets(cls, config: Config, target_ids: set[str]) -> State:
-        id_to_target = {target.id: target for target in config.targets if target.id in target_ids}
+        id_to_target = {target.id: target for target in config.targets}
 
         graph = DiGraph()
 
@@ -55,10 +55,12 @@ class State:
             for predecessor_id in target.after:
                 graph.add_edge(predecessor_id, id)
 
+        filtered = graph.subgraph(_ancestors(graph, target_ids))
+
         return State(
-            graph=graph,
-            id_to_target=id_to_target,
-            id_to_status={id: TargetStatus.Pending for id in id_to_target.keys()},
+            graph=filtered,
+            id_to_target={id: target for id, target in id_to_target.items() if id in filtered},
+            id_to_status={id: TargetStatus.Pending for id in filtered.nodes},
         )
 
     def running_targets(self) -> set[Target]:
@@ -98,6 +100,10 @@ class State:
 
     def targets(self) -> set[Target]:
         return set(self.id_to_target.values())
+
+
+def _ancestors(graph: DiGraph, nodes: set[str]) -> set[str]:
+    return nodes.union(*(ancestors(graph, n) for n in nodes))
 
 
 prefix_format = "{timestamp:%H:%M:%S} {id}  "
@@ -182,30 +188,6 @@ class Controller:
             if self.state.all_done() and not self.watchers:
                 return
 
-    def info(self, event: Event) -> RenderableType:
-        table = Table.grid(padding=(1, 1, 0, 0))
-
-        running_targets = self.state.running_targets()
-
-        parts = [
-            Text.assemble(
-                "Running ",
-                Text(" ").join(
-                    Text(t.id, style=Style(color="black", bgcolor=t.color))
-                    for t in sorted(running_targets, key=lambda t: t.id)
-                ),
-            )
-            if running_targets
-            else Text(),
-        ]
-
-        table.add_row(
-            internal_format.format_map({"timestamp": event.timestamp}),
-            *parts,
-        )
-
-        return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)
-
     async def start_heartbeat(self) -> None:
         async def heartbeat() -> None:
             while True:
@@ -244,6 +226,30 @@ class Controller:
                 self.watchers[t.id] = create_task(
                     watch(target=t, paths=t.lifecycle.paths, events=self.events)
                 )
+
+    def info(self, event: Event) -> RenderableType:
+        table = Table.grid(padding=(1, 1, 0, 0))
+
+        running_targets = self.state.running_targets()
+
+        parts = [
+            Text.assemble(
+                "Running ",
+                Text(" ").join(
+                    Text(t.id, style=Style(color="black", bgcolor=t.color))
+                    for t in sorted(running_targets, key=lambda t: t.id)
+                ),
+            )
+            if running_targets
+            else Text(),
+        ]
+
+        table.add_row(
+            internal_format.format_map({"timestamp": event.timestamp}),
+            *parts,
+        )
+
+        return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)
 
     def render_prefix(
         self, message: CommandMessage | CommandLifecycleEvent | WatchPathChanged
