@@ -50,6 +50,22 @@ class Renderer:
     ) -> None:
         self.live.stop()
 
+    def handle_message(self, message: Message) -> None:
+        match message:
+            case CommandMessage() as msg:
+                self.handle_command_message(msg)
+
+            case CommandStarted() as msg:
+                self.handle_lifecycle_message(msg)
+
+            case CommandExited() as msg:
+                self.handle_lifecycle_message(msg)
+
+            case WatchPathChanged() as msg:
+                self.handle_lifecycle_message(msg)
+
+        self.update(message)
+
     def info(self, event: Message) -> RenderableType:
         table = Table.grid(padding=(1, 1, 0, 0))
 

@@ -10,15 +10,7 @@ from watchfiles import awatch
 
 from synth.config import Config, Restart, Target, Watch
 from synth.execution import Execution
-from synth.messages import (
-    CommandExited,
-    CommandMessage,
-    CommandStarted,
-    Heartbeat,
-    Message,
-    Quit,
-    WatchPathChanged,
-)
+from synth.messages import CommandExited, CommandStarted, Heartbeat, Message, Quit, WatchPathChanged
 from synth.renderer import Renderer
 from synth.state import State
 from synth.utils import delay
@@ -49,7 +41,7 @@ class Orchestrator:
                 await self.start_watchers()
                 await self.start_ready_targets()
 
-                await self.control()
+                await self.handle_messages()
             finally:
                 self.renderer.handle_shutdown_start()
 
@@ -68,40 +60,31 @@ class Orchestrator:
 
                 self.renderer.handle_shutdown_end()
 
-    async def control(self) -> None:
+    async def handle_messages(self) -> None:
         signal.signal(signal.SIGINT, lambda sig, frame: self.inbox.put_nowait(Quit()))
 
         while True:
             match message := await self.inbox.get():
-                case CommandMessage() as msg:
-                    self.renderer.handle_command_message(msg)
-
-                case CommandStarted(target=target) as msg:
+                case CommandStarted(target=target):
                     self.state.mark_running(target)
 
-                    self.renderer.handle_lifecycle_message(msg)
-
-                case CommandExited(target=target) as msg:
+                case CommandExited(target=target):
                     if isinstance(target.lifecycle, Restart):
                         self.state.mark_pending(target)
                     else:
                         self.state.mark_done(target)
 
-                    self.renderer.handle_lifecycle_message(msg)
-
-                case WatchPathChanged(target=target) as msg:
+                case WatchPathChanged(target=target):
                     self.executions[target.id].terminate()
 
                     self.state.mark_descendants_pending(target)
-
-                    self.renderer.handle_lifecycle_message(msg)
 
                 case Quit():
                     return
 
             await self.start_ready_targets()
 
-            self.renderer.update(message)
+            self.renderer.handle_message(message)
 
             if self.state.all_done() and not self.watchers:
                 return
