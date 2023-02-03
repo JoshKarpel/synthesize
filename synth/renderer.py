@@ -71,7 +71,7 @@ class Renderer:
 
         running_targets = self.state.running_targets()
 
-        parts = [
+        running = (
             Text.assemble(
                 "Running ",
                 Text(" ").join(
@@ -80,12 +80,12 @@ class Renderer:
                 ),
             )
             if running_targets
-            else Text(),
-        ]
+            else Text()
+        )
 
         table.add_row(
             internal_format.format_map({"timestamp": event.timestamp}),
-            *parts,
+            running,
         )
 
         return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)

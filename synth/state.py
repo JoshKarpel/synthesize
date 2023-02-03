@@ -48,7 +48,9 @@ class State:
 
     def ready_targets(self) -> set[Target]:
         pending_target_ids = {
-            id for id, status in self.id_to_status.items() if status is TargetStatus.Pending
+            id
+            for id, status in self.id_to_status.items()
+            if status is TargetStatus.Pending or status is TargetStatus.Running
         }
 
         pending_subgraph: DiGraph = self.graph.subgraph(pending_target_ids)

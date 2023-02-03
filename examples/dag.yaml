@@ -2,17 +2,25 @@ targets:
   - id: 1
     commands:
       - type: shell
+        args: sleep 2
+      - type: shell
         args: echo 1
   - id: 2
     commands:
+      - type: shell
+        args: sleep 2
       - type: shell
         args: echo 2
   - id: 3
     commands:
       - type: shell
+        args: sleep 2
+      - type: shell
         args: echo 3
   - id: 4
     commands:
+      - type: shell
+        args: sleep 2
       - type: shell
         args: echo 4
     after:
@@ -21,12 +29,16 @@ targets:
   - id: 5
     commands:
       - type: shell
+        args: sleep 2
+      - type: shell
         args: echo 5
     after:
       - 2
       - 3
   - id: 6
     commands:
+      - type: shell
+        args: sleep 2
       - type: shell
         args: echo 6
     after:

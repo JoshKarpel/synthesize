@@ -54,8 +54,7 @@ class ShellCommand(Command):
 class Target(Model):
     id: str
 
-    commands: tuple[ShellCommand] = Field(default=())
-    shutdown: tuple[ShellCommand] = Field(default=())
+    commands: tuple[ShellCommand, ...] = Field(default=())
 
     after: tuple[str, ...] = Field(default=())
     lifecycle: Once | Restart | Watch = Once()
