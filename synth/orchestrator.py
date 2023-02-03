@@ -12,7 +12,7 @@ from synth.config import Config, Restart, Target, Watch
 from synth.execution import Execution
 from synth.messages import CommandExited, CommandStarted, Heartbeat, Message, Quit, WatchPathChanged
 from synth.renderer import Renderer
-from synth.state import State
+from synth.state import Node, State
 from synth.utils import delay
 
 
@@ -26,8 +26,8 @@ class Orchestrator:
 
         self.inbox: Queue[Message] = Queue()
 
-        self.executions: dict[str, Execution] = {}
-        self.waiters: dict[str, Task[Execution]] = {}
+        self.executions: dict[Node, Execution] = {}
+        self.waiters: dict[Node, Task[Execution]] = {}
         self.watchers: dict[str, Task[None]] = {}
         self.heartbeat: Task[None] | None = None
 
@@ -65,19 +65,21 @@ class Orchestrator:
 
         while True:
             match message := await self.inbox.get():
-                case CommandStarted(target=target):
-                    self.state.mark_running(target)
+                case CommandStarted(target=target, idx=idx):
+                    self.state.mark_running(target, idx)
 
-                case CommandExited(target=target):
+                case CommandExited(target=target, idx=idx):
                     if isinstance(target.lifecycle, Restart):
-                        self.state.mark_pending(target)
+                        self.state.mark_pending(target, idx)
                     else:
-                        self.state.mark_done(target)
+                        self.state.mark_done(target, idx)
 
                 case WatchPathChanged(target=target):
-                    self.executions[target.id].terminate()
+                    for idx in range(len(target.commands)):
+                        if e := self.executions.get((target.id, idx)):
+                            e.terminate()
 
-                    self.state.mark_descendants_pending(target)
+                        self.state.mark_descendants_pending(target, idx)
 
                 case Quit():
                     return
@@ -98,26 +100,26 @@ class Orchestrator:
         self.heartbeat = create_task(heartbeat())
 
     async def start_ready_targets(self) -> None:
-        for t in self.state.ready_targets():
-            if e := self.executions.get(t.id):
+        for (target, idx) in self.state.ready_commands():
+            if e := self.executions.get((target.id, idx)):
                 if not e.has_exited:
                     continue
 
-            self.state.mark_running(t)
+            self.state.mark_running(target, idx)
 
             async def start() -> None:
                 e = await Execution.start(
-                    target=t,
-                    command=t.commands[0],
+                    target=target,
+                    idx=idx,
                     events=self.inbox,
                     width=self.console.width - self.renderer.prefix_width,
                 )
-                self.executions[t.id] = e
-                self.waiters[t.id] = create_task(e.wait())
+                self.executions[(target.id, idx)] = e
+                self.waiters[(target.id, idx)] = create_task(e.wait())
 
             # When restarting after first execution, delay
-            if isinstance(t.lifecycle, Restart) and t.id in self.executions:
-                delay(t.lifecycle.delay, start)
+            if isinstance(target.lifecycle, Restart) and target.id in self.executions:
+                delay(target.lifecycle.delay, start)
             else:
                 await start()
 

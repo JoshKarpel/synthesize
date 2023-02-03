@@ -5,7 +5,6 @@ from pathlib import Path
 from time import monotonic
 
 import typer.rich_utils as ru
-from click.exceptions import Exit
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
@@ -59,8 +58,6 @@ def run(
     controller = Orchestrator(config=parsed_config, state=state, console=console)
     try:
         asyncio.run(controller.start())
-    except KeyboardInterrupt:
-        raise Exit(code=0)
     finally:
         end_time = monotonic()
 
