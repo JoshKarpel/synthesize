@@ -14,11 +14,11 @@ from rich.text import Text
 from watchfiles import Change
 
 from synth.messages import (
-    CommandExited,
     CommandLifecycleEvent,
     CommandMessage,
-    CommandStarted,
     Message,
+    TargetExited,
+    TargetStarted,
     WatchPathChanged,
 )
 from synth.state import State
@@ -55,10 +55,10 @@ class Renderer:
             case CommandMessage() as msg:
                 self.handle_command_message(msg)
 
-            case CommandStarted() as msg:
+            case TargetStarted() as msg:
                 self.handle_lifecycle_message(msg)
 
-            case CommandExited() as msg:
+            case TargetExited() as msg:
                 self.handle_lifecycle_message(msg)
 
             case WatchPathChanged() as msg:
@@ -119,16 +119,16 @@ class Renderer:
         parts: tuple[str | tuple[str, str] | tuple[str, Style] | Text, ...]
 
         match message:
-            case CommandStarted(target=target, command=command, pid=pid):
+            case TargetStarted(target=target, pid=pid):
                 parts = (
-                    "Command ",
-                    (command.args, target.color),
+                    "Target ",
+                    (target.id, target.color),
                     f" started (pid {pid})",
                 )
-            case CommandExited(target=target, command=command, pid=pid, exit_code=exit_code):
+            case TargetExited(target=target, pid=pid, exit_code=exit_code):
                 parts = (
-                    "Command ",
-                    (command.args, target.color),
+                    "Target ",
+                    (target.id, target.color),
                     f" (pid {pid}) exited with code ",
                     (str(exit_code), "green" if exit_code == 0 else "red"),
                 )

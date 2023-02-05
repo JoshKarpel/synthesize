@@ -54,7 +54,8 @@ class ShellCommand(Command):
 class Target(Model):
     id: str
 
-    commands: tuple[ShellCommand, ...] = Field(default=())
+    commands: str = Field(default="")
+    executable: str = Field(default="sh -u")
 
     after: tuple[str, ...] = Field(default=())
     lifecycle: Once | Restart | Watch = Once()

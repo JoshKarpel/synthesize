@@ -1,21 +1,15 @@
 targets:
   - id: tests
-    commands:
-      - type: shell
-        args: pytest
+    commands: pytest
     lifecycle:
       type: "watch"
       paths: ["synth", "tests"]
   - id: types
-    commands:
-      - type: shell
-        args: mypy
+    commands: mypy
     lifecycle:
       type: "watch"
       paths: ["synth", "tests"]
   - id: docs
-    commands:
-      - type: shell
-        args: mkdocs serve --strict
+    commands: mkdocs serve --strict
     lifecycle:
       type: "restart"

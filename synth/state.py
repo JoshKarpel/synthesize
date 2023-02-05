@@ -59,17 +59,16 @@ class State:
         return {
             self.id_to_target[id]
             for id in self.graph.nodes
-            if self.node_to_status[id] is TargetStatus.Pending
+            if self.id_to_status[id] is TargetStatus.Pending
             and all(
-                self.node_to_status[a] is TargetStatus.Succeeded
-                for a in ancestors(self.graph, id)
+                self.id_to_status[a] is TargetStatus.Succeeded for a in ancestors(self.graph, id)
             )
         }
 
     def mark_success(self, target: Target) -> None:
         self.id_to_status[target.id] = TargetStatus.Succeeded
 
-    def mark_failure(self, target: Target, idx: int) -> None:
+    def mark_failure(self, target: Target) -> None:
         self.id_to_status[target.id] = TargetStatus.Failed
 
     def mark_pending(self, target: Target) -> None:

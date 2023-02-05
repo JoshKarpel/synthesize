@@ -1,19 +1,34 @@
 from __future__ import annotations
 
 import os
+import shlex
+import shutil
 from asyncio import Queue, Task, create_task
-from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_shell
+from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_exec
 from dataclasses import dataclass, field
+from functools import lru_cache
+from hashlib import md5
+from pathlib import Path
 from signal import SIGKILL, SIGTERM
+from stat import S_IEXEC
 
-from synth.config import ShellCommand, Target
-from synth.messages import CommandExited, CommandMessage, CommandStarted, Message
+from synth.config import Target
+from synth.messages import CommandMessage, Message, TargetExited, TargetStarted
+
+
+@lru_cache(maxsize=2**10)
+def file_name(target: Target) -> str:
+    h = md5()
+    h.update(target.id.encode())
+    h.update(target.executable.encode())
+    h.update(target.commands.encode())
+
+    return f"{target.id}-{h.hexdigest()}"
 
 
 @dataclass(frozen=True)
 class Execution:
     target: Target
-    command: ShellCommand
 
     events: Queue[Message] = field(repr=False)
 
@@ -26,34 +41,48 @@ class Execution:
     async def start(
         cls,
         target: Target,
-        command: ShellCommand,
         events: Queue[Message],
+        tmp_dir: Path,
         width: int = 80,
     ) -> Execution:
-        process = await create_subprocess_shell(
-            cmd=command.args,
+        path = tmp_dir / file_name(target)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        exe, *args = shlex.split(target.executable)
+        which_exe = shutil.which(exe)
+        if which_exe is None:
+            raise Exception(f"Failed to find absolute path to executable for {exe}")
+        path.write_text(
+            "\n".join(
+                (
+                    f"#! {shlex.join((which_exe, *args))}",
+                    "",
+                    target.commands,
+                )
+            )
+        )
+        path.chmod(path.stat().st_mode | S_IEXEC)
+
+        process = await create_subprocess_exec(
+            program=path,
             stdout=PIPE,
             stderr=STDOUT,
             env={**os.environ, "FORCE_COLOR": "1", "COLUMNS": str(width)},
             preexec_fn=os.setsid,
-            executable=os.getenv("SHELL"),
         )
 
         reader = create_task(
             read_output(
                 target=target,
-                command=command,
                 process=process,
                 events=events,
             ),
-            name=f"Read output for {command.args!r}",
+            name=f"Read output for {target.id}",
         )
 
-        await events.put(CommandStarted(target=target, command=command, pid=process.pid))
+        await events.put(TargetStarted(target=target, pid=process.pid))
 
         return cls(
             target=target,
-            command=command,
             events=events,
             process=process,
             reader=reader,
@@ -93,9 +122,8 @@ class Execution:
         await self.reader
 
         await self.events.put(
-            CommandExited(
+            TargetExited(
                 target=self.target,
-                command=self.command,
                 pid=self.pid,
                 exit_code=self.exit_code,
             )
@@ -104,9 +132,7 @@ class Execution:
         return self
 
 
-async def read_output(
-    target: Target, command: ShellCommand, process: Process, events: Queue[Message]
-) -> None:
+async def read_output(target: Target, process: Process, events: Queue[Message]) -> None:
     if process.stdout is None:  # pragma: unreachable
         raise Exception(f"{process} does not have an associated stream reader")
 
@@ -118,7 +144,6 @@ async def read_output(
         await events.put(
             CommandMessage(
                 target=target,
-                command=command,
                 text=line.decode("utf-8").rstrip(),
             )
         )

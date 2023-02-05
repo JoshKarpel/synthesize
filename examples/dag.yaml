@@ -1,46 +1,34 @@
 targets:
   - id: 1
-    commands:
-      - type: shell
-        args: sleep 2
-      - type: shell
-        args: echo 1
+    commands: |
+      sleep 2
+      echo 1
   - id: 2
-    commands:
-      - type: shell
-        args: sleep 2
-      - type: shell
-        args: echo 2
+    commands: |
+      sleep 2
+      echo 2
   - id: 3
-    commands:
-      - type: shell
-        args: sleep 2
-      - type: shell
-        args: echo 3
+    commands: |
+      sleep 2
+      echo 3
   - id: 4
-    commands:
-      - type: shell
-        args: sleep 2
-      - type: shell
-        args: echo 4
+    commands: |
+      sleep 2
+      echo 4
     after:
       - 1
       - 2
   - id: 5
-    commands:
-      - type: shell
-        args: sleep 2
-      - type: shell
-        args: echo 5
+    commands: |
+      sleep 2
+      echo 5
     after:
       - 2
       - 3
   - id: 6
-    commands:
-      - type: shell
-        args: sleep 2
-      - type: shell
-        args: echo 6
+    commands: |
+      sleep 2
+      echo 6
     after:
       - 4
       - 5

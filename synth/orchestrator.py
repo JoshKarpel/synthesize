@@ -4,13 +4,14 @@ import signal
 from asyncio import Queue, Task, create_task, gather, sleep
 from collections.abc import Iterable
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from rich.console import Console
 from watchfiles import awatch
 
 from synth.config import Config, Restart, Target, Watch
 from synth.execution import Execution
-from synth.messages import CommandExited, CommandStarted, Heartbeat, Message, Quit, WatchPathChanged
+from synth.messages import Heartbeat, Message, Quit, TargetExited, TargetStarted, WatchPathChanged
 from synth.renderer import Renderer
 from synth.state import State
 from synth.utils import delay
@@ -35,13 +36,15 @@ class Orchestrator:
         if not self.state.targets():
             return
 
-        with self.renderer:
+        with TemporaryDirectory(prefix="snyth-") as tmpdir, self.renderer:
+            tmp_dir = Path(tmpdir)
+
             try:
                 await self.start_heartbeat()
                 await self.start_watchers()
-                await self.start_ready_targets()
+                await self.start_ready_targets(tmp_dir=tmp_dir)
 
-                await self.handle_messages()
+                await self.handle_messages(tmp_dir=tmp_dir)
             finally:
                 self.renderer.handle_shutdown_start()
 
@@ -60,32 +63,33 @@ class Orchestrator:
 
                 self.renderer.handle_shutdown_end()
 
-    async def handle_messages(self) -> None:
+    async def handle_messages(self, tmp_dir: Path) -> None:
         signal.signal(signal.SIGINT, lambda sig, frame: self.inbox.put_nowait(Quit()))
 
         while True:
             match message := await self.inbox.get():
-                case CommandStarted(target=target):
+                case TargetStarted(target=target):
                     self.state.mark_running(target)
 
-                case CommandExited(target=target, exit_code=exit_code):
+                case TargetExited(target=target, exit_code=exit_code):
                     if isinstance(target.lifecycle, Restart):
                         self.state.mark_pending(target)
                     else:
                         if exit_code == 0:
-                            self.state.mark_success(target, idx)
+                            self.state.mark_success(target)
                         else:
                             self.state.mark_failure(target)
 
                 case WatchPathChanged(target=target):
-                    self.executions[target.id].terminate()
+                    if e := self.executions.get(target.id):
+                        e.terminate()
 
                     self.state.mark_descendants_pending(target)
 
                 case Quit():
                     return
 
-            await self.start_ready_targets()
+            await self.start_ready_targets(tmp_dir=tmp_dir)
 
             self.renderer.handle_message(message)
 
@@ -100,7 +104,7 @@ class Orchestrator:
 
         self.heartbeat = create_task(heartbeat())
 
-    async def start_ready_targets(self) -> None:
+    async def start_ready_targets(self, tmp_dir: Path) -> None:
         for t in self.state.ready_targets():
             if e := self.executions.get(t.id):
                 if not e.has_exited:
@@ -111,9 +115,9 @@ class Orchestrator:
             async def start() -> None:
                 e = await Execution.start(
                     target=t,
-                    command=t.commands[0],
                     events=self.inbox,
                     width=self.console.width - self.renderer.prefix_width,
+                    tmp_dir=tmp_dir,
                 )
                 self.executions[t.id] = e
                 self.waiters[t.id] = create_task(e.wait())

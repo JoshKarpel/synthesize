@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import Field
 from watchfiles import Change
 
-from synth.config import ShellCommand, Target
+from synth.config import Target
 from synth.model import Model
 
 
@@ -13,21 +13,19 @@ class Message(Model):
 
 class CommandLifecycleEvent(Message):
     target: Target
-    command: ShellCommand
     pid: int
 
 
-class CommandStarted(CommandLifecycleEvent):
+class TargetStarted(CommandLifecycleEvent):
     pass
 
 
-class CommandExited(CommandLifecycleEvent):
+class TargetExited(CommandLifecycleEvent):
     exit_code: int
 
 
 class CommandMessage(Message):
     target: Target
-    command: ShellCommand
     text: str
 
 
