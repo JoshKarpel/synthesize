@@ -14,7 +14,6 @@ class Message(Model):
 class CommandLifecycleEvent(Message):
     target: Target
     command: ShellCommand
-    idx: int
     pid: int
 
 
@@ -29,7 +28,6 @@ class CommandExited(CommandLifecycleEvent):
 class CommandMessage(Message):
     target: Target
     command: ShellCommand
-    idx: int
     text: str
 
 

@@ -13,7 +13,7 @@ from synth.messages import CommandExited, CommandMessage, CommandStarted, Messag
 @dataclass(frozen=True)
 class Execution:
     target: Target
-    idx: int
+    command: ShellCommand
 
     events: Queue[Message] = field(repr=False)
 
@@ -26,12 +26,10 @@ class Execution:
     async def start(
         cls,
         target: Target,
-        idx: int,
+        command: ShellCommand,
         events: Queue[Message],
         width: int = 80,
     ) -> Execution:
-        command = target.commands[idx]
-
         process = await create_subprocess_shell(
             cmd=command.args,
             stdout=PIPE,
@@ -45,27 +43,22 @@ class Execution:
             read_output(
                 target=target,
                 command=command,
-                idx=idx,
                 process=process,
                 events=events,
             ),
-            name=f"Read output for {command!r}",
+            name=f"Read output for {command.args!r}",
         )
 
-        await events.put(CommandStarted(target=target, command=command, idx=idx, pid=process.pid))
+        await events.put(CommandStarted(target=target, command=command, pid=process.pid))
 
         return cls(
             target=target,
-            idx=idx,
+            command=command,
             events=events,
             process=process,
             reader=reader,
             width=width,
         )
-
-    @property
-    def command(self) -> ShellCommand:
-        return self.target.commands[self.idx]
 
     @property
     def pid(self) -> int:
@@ -103,7 +96,6 @@ class Execution:
             CommandExited(
                 target=self.target,
                 command=self.command,
-                idx=self.idx,
                 pid=self.pid,
                 exit_code=self.exit_code,
             )
@@ -113,7 +105,7 @@ class Execution:
 
 
 async def read_output(
-    target: Target, command: ShellCommand, idx: int, process: Process, events: Queue[Message]
+    target: Target, command: ShellCommand, process: Process, events: Queue[Message]
 ) -> None:
     if process.stdout is None:  # pragma: unreachable
         raise Exception(f"{process} does not have an associated stream reader")
@@ -127,7 +119,6 @@ async def read_output(
             CommandMessage(
                 target=target,
                 command=command,
-                idx=idx,
                 text=line.decode("utf-8").rstrip(),
             )
         )
