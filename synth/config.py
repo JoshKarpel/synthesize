@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from colorsys import hsv_to_rgb
+from functools import cache
 from pathlib import Path
 from random import random
 from typing import Literal
 
 from identify.identify import tags_from_path
+from lark import Lark, ParseTree, Token
 from pydantic import Field
 from rich.color import Color
 
 from synth.model import Model
-from synth.parser import parse
 
 
 class Lifecycle(Model):
@@ -71,7 +72,7 @@ class Config(Model):
 
     @classmethod
     def parse_file(cls, file: Path) -> Config:
-        tags = tags_from_path(file)
+        tags = tags_from_path(str(file))
 
         if "yaml" in tags:
             return cls.parse_yaml(file.read_text())
@@ -80,4 +81,47 @@ class Config(Model):
 
     @classmethod
     def parse_synth(cls, text: str) -> Config:
-        return parse(text)
+        parsed: ParseTree[Token] = parser().parse(text)
+        targets = []
+        for target in parsed.children:
+            id_token, *line_trees = target.children
+
+            metas = {}
+            command_lines = []
+            for line_tree in line_trees:
+                if line_tree.data == "meta_line":
+                    metas[line_tree.children[0].value] = tuple(
+                        str(child.value) for child in line_tree.children[1:]
+                    )
+                if line_tree.data == "command_line":
+                    command_lines.append(line_tree.children[0].value)
+
+            command = "".join(command_lines).lstrip("\n").rstrip() + "\n\n"
+
+            targets.append(Target(id=id_token.value, commands=command, **metas))
+
+        return Config(targets=tuple(targets))
+
+
+@cache
+def parser() -> Lark:
+    tree_grammar = r"""
+    ?start: (_NL* target)*
+
+    target: ID ":" _NL meta_line* command_line+
+    ID: /[\w\-]/+
+
+    meta_line: _META_WS "@" META_ATTR (_META_WS META_ARG)* _NL
+
+    _META_WS: /[ \t]+/
+    META_ATTR: /\w+/
+    META_ARG: /\w+/
+
+    command_line: COMMAND_LINE | BLANK_LINE
+    COMMAND_LINE: /[ \t]+[\w ]*\r?\n/
+    BLANK_LINE: /\r?\n/
+
+    _NL: /\r?\n/
+    """
+
+    return Lark(tree_grammar, parser="lalr")
