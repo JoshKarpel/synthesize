@@ -4,11 +4,12 @@ from colorsys import hsv_to_rgb
 from functools import cache
 from pathlib import Path
 from random import random
+from textwrap import dedent
 from typing import Literal
 
 from identify.identify import tags_from_path
 from lark import Lark, ParseTree, Token
-from pydantic import Field
+from pydantic import Field, validator
 from rich.color import Color
 
 from synth.model import Model
@@ -65,6 +66,10 @@ class Target(Model):
     lifecycle: Once | Restart | Watch = Once()
 
     color: str = Field(default_factory=random_color)
+
+    @validator("commands")
+    def dedent_commands(cls, commands: str) -> str:
+        return dedent(commands)
 
 
 class Config(Model):
