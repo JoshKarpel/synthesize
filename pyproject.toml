@@ -19,6 +19,7 @@ pyyaml = ">=6.0"
 networkx = ">=3.0"
 watchfiles = ">=0.18.1"
 lark = "^1.1.5"
+identify = "^2.5.17"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = ">=3"

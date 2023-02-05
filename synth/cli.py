@@ -41,7 +41,7 @@ def run(
 
     console = Console()
 
-    parsed_config = Config.parse_yaml(config.read_text())
+    parsed_config = Config.parse_file(config)
 
     if dry:
         console.print(

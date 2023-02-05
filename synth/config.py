@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from colorsys import hsv_to_rgb
+from pathlib import Path
 from random import random
 from typing import Literal
 
+from identify.identify import tags_from_path
 from pydantic import Field
 from rich.color import Color
 
 from synth.model import Model
+from synth.parser import parse
 
 
 class Lifecycle(Model):
@@ -65,3 +68,16 @@ class Target(Model):
 
 class Config(Model):
     targets: tuple[Target, ...]
+
+    @classmethod
+    def parse_file(cls, file: Path) -> Config:
+        tags = tags_from_path(file)
+
+        if "yaml" in tags:
+            return cls.parse_yaml(file.read_text())
+        else:
+            return cls.parse_synth(file.read_text())
+
+    @classmethod
+    def parse_synth(cls, text: str) -> Config:
+        return parse(text)
