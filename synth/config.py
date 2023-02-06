@@ -8,7 +8,7 @@ from textwrap import dedent
 from typing import Literal
 
 from identify.identify import tags_from_path
-from lark import Lark, ParseTree, Token
+from lark import Lark
 from pydantic import Field, validator
 from rich.color import Color
 
@@ -76,7 +76,7 @@ class Config(Model):
     targets: tuple[Target, ...]
 
     @classmethod
-    def parse_file(cls, file: Path) -> Config:
+    def from_file(cls, file: Path) -> Config:
         tags = tags_from_path(str(file))
 
         if "yaml" in tags:
@@ -86,24 +86,24 @@ class Config(Model):
 
     @classmethod
     def parse_synth(cls, text: str) -> Config:
-        parsed: ParseTree[Token] = parser().parse(text)
+        parsed = parser().parse(text)
         targets = []
         for target in parsed.children:
-            id_token, *line_trees = target.children
+            id_token, *line_trees = target.children  # type: ignore[union-attr]
 
             metas = {}
             command_lines = []
             for line_tree in line_trees:
-                if line_tree.data == "meta_line":
-                    metas[line_tree.children[0].value] = tuple(
-                        str(child.value) for child in line_tree.children[1:]
+                if line_tree.data == "meta_line":  # type: ignore[union-attr]
+                    metas[line_tree.children[0].value] = tuple(  # type: ignore[union-attr]
+                        str(child.value) for child in line_tree.children[1:]  # type: ignore[union-attr]
                     )
-                if line_tree.data == "command_line":
-                    command_lines.append(line_tree.children[0].value)
+                if line_tree.data == "command_line":  # type: ignore[union-attr]
+                    command_lines.append(line_tree.children[0].value)  # type: ignore[union-attr]
 
             command = "".join(command_lines).lstrip("\n").rstrip() + "\n\n"
 
-            targets.append(Target(id=id_token.value, commands=command, **metas))
+            targets.append(Target(id=id_token.value, commands=command, **metas))  # type: ignore[union-attr]
 
         return Config(targets=tuple(targets))
 

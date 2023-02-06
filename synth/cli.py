@@ -41,7 +41,7 @@ def run(
 
     console = Console()
 
-    parsed_config = Config.parse_file(config)
+    parsed_config = Config.from_file(config)
 
     if dry:
         console.print(
