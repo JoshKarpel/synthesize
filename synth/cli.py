@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 from time import monotonic
+from typing import Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
+from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
 
@@ -24,8 +26,8 @@ cli = Typer()
 @cli.command()
 def run(
     target: list[str] = Argument(None),
-    config: Path = Option(
-        default="synth.yaml",
+    config: Optional[Path] = Option(
+        default=None,
         exists=True,
         readable=True,
         show_default=True,
@@ -40,6 +42,8 @@ def run(
     start_time = monotonic()
 
     console = Console()
+
+    config = config or find_config_file(console)
 
     parsed_config = Config.from_file(config)
 
@@ -65,3 +69,18 @@ def run(
         end_time = monotonic()
 
         console.print(Text(f"Finished in {end_time - start_time:.3f} seconds."))
+
+
+def find_config_file(console: Console) -> Path:
+    cwd = Path.cwd()
+    for dir in (cwd, *cwd.parents):
+        contents = set(dir.iterdir())
+        for name in ("synthfile", "synth.yaml"):
+            if (path := dir / name) in contents:
+                return path
+
+        if dir / ".git" in contents:
+            break
+
+    console.print(Text("Failed to find a Synth config file", style=Style(color="red")))
+    raise Exit(code=1)

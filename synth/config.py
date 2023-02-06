@@ -91,13 +91,22 @@ class Config(Model):
         for target in parsed.children:
             id_token, *line_trees = target.children  # type: ignore[union-attr]
 
-            metas = {}
+            metas: dict[str, object] = {}
             command_lines = []
             for line_tree in line_trees:
                 if line_tree.data == "meta_line":  # type: ignore[union-attr]
-                    metas[line_tree.children[0].value] = tuple(  # type: ignore[union-attr]
-                        str(child.value) for child in line_tree.children[1:]  # type: ignore[union-attr]
-                    )
+                    meta = line_tree.children[0].data  # type: ignore[union-attr]
+                    args = line_tree.children[0].children  # type: ignore[union-attr]
+                    match meta:
+                        case "once":
+                            metas["lifecycle"] = Once()
+                        case "watch":
+                            metas["lifecycle"] = Watch(paths=tuple(map(str, args)))
+                        case "restart":
+                            metas["lifecycle"] = Restart()
+                        case "after":
+                            metas["after"] = tuple(map(str, args))
+
                 if line_tree.data == "command_line":  # type: ignore[union-attr]
                     command_lines.append(line_tree.children[0].value)  # type: ignore[union-attr]
 
@@ -116,14 +125,21 @@ def parser() -> Lark:
     target: ID ":" _NL meta_line* command_line+
     ID: /[\w\-]/+
 
-    meta_line: _META_WS "@" META_ATTR (_META_WS META_ARG)* _NL
+    meta_line: _META_WS "@" _meta _NL
+
+    _meta: after | watch | restart
+
+    after: "after" (_META_WS META_ARG)*
+    watch: "watch" (_META_WS META_ARG)*
+    restart: "restart"
+
 
     _META_WS: /[ \t]+/
-    META_ATTR: /\w+/
-    META_ARG: /\w+/
+    META_ATTR: /[\w\/\-]+/
+    META_ARG: /[\w\/\-]+/
 
     command_line: COMMAND_LINE | BLANK_LINE
-    COMMAND_LINE: /[ \t]+[\w ]*\r?\n/
+    COMMAND_LINE: /[ \t]+[\w\/\- ]*\r?\n/
     BLANK_LINE: /\r?\n/
 
     _NL: /\r?\n/
