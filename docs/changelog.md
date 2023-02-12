@@ -4,7 +4,7 @@
 
 ### Added
 
-- [#2](https://github.com/JoshKarpel/synthesize/pull/2) Added PyPI classifiers and other metadata.
+- [#3](https://github.com/JoshKarpel/synthesize/pull/3) Added PyPI classifiers and other metadata.
 
 ## `0.0.2`
 
