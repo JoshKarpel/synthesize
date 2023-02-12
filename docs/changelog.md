@@ -2,7 +2,9 @@
 
 ## `0.0.3`
 
-*Unreleased*
+### Added
+
+- [#2](https://github.com/JoshKarpel/synthesize/pull/2) Added PyPI classifiers and other metadata.
 
 ## `0.0.2`
 
