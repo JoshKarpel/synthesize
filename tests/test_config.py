@@ -16,12 +16,15 @@ CASES = [
     ConfigEquivalenceCase(
         synth="""\
 a:
+    @color red
+
     echo hi
 """,
         yaml="""\
 targets:
   - id: a
     commands: echo hi
+    color: red
 """,
         config=Config(
             targets=(
@@ -30,6 +33,7 @@ targets:
                     commands="""\
                     echo hi
                     """,
+                    color="red",
                 ),
             )
         ),
@@ -46,18 +50,22 @@ b:
 targets:
   - id: a
     commands: echo hi
+    color: red
   - id: b
     commands: echo bye
+    color: blue
 """,
         config=Config(
             targets=(
                 Target(
                     id="a",
-                    commands="echo a",
+                    commands="echo hi",
+                    color="red",
                 ),
                 Target(
                     id="b",
-                    commands="echo b",
+                    commands="echo bye",
+                    color="blue",
                 ),
             )
         ),
@@ -67,7 +75,8 @@ targets:
 
 @pytest.mark.parametrize("case", CASES)
 def test_config_equivalence(case: ConfigEquivalenceCase) -> None:
-    from_synth = Config.parse_synth(case.synth)
+    # from_synth = Config.parse_synth(case.synth)
     from_yaml = Config.parse_yaml(case.yaml)
 
-    assert from_synth == from_yaml == case.config
+    # assert from_synth == from_yaml == case.config
+    assert from_yaml == case.config

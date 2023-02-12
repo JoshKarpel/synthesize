@@ -69,7 +69,7 @@ class Target(Model):
 
     @validator("commands")
     def dedent_commands(cls, commands: str) -> str:
-        return dedent(commands)
+        return dedent(commands).strip()
 
 
 class Config(Model):
@@ -110,7 +110,7 @@ class Config(Model):
                 if line_tree.data == "command_line":  # type: ignore[union-attr]
                     command_lines.append(line_tree.children[0].value)  # type: ignore[union-attr]
 
-            command = "".join(command_lines).lstrip("\n").rstrip() + "\n\n"
+            command = "".join(command_lines)
 
             targets.append(Target(id=id_token.value, commands=command, **metas))  # type: ignore[union-attr]
 

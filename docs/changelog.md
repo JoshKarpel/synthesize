@@ -2,4 +2,4 @@
 
 ## `0.1.0`
 
-*Unreleased*
+Released `2023-02-12`
