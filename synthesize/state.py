@@ -5,7 +5,7 @@ from enum import Enum
 
 from networkx import DiGraph, ancestors, descendants
 
-from synth.config import Config, Target
+from synthesize.config import Config, Target
 
 
 class TargetStatus(Enum):

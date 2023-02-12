@@ -12,8 +12,8 @@ from pathlib import Path
 from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
 
-from synth.config import Target
-from synth.messages import CommandMessage, Message, TargetExited, TargetStarted
+from synthesize.config import Target
+from synthesize.messages import CommandMessage, Message, TargetExited, TargetStarted
 
 
 @lru_cache(maxsize=2**10)

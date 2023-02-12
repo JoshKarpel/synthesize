@@ -12,7 +12,7 @@ from lark import Lark
 from pydantic import Field, validator
 from rich.color import Color
 
-from synth.model import Model
+from synthesize.model import Model
 
 
 class Lifecycle(Model):

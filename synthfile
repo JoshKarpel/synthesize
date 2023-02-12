@@ -1,10 +1,10 @@
 tests:
-    @watch synth/ tests/
+    @watch synthesize/ tests/
 
     pytest -v
 
 types:
-    @watch synth/ tests/
+    @watch synthesize/ tests/
 
     mypy
 

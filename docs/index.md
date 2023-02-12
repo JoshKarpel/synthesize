@@ -1,1 +1,1 @@
-# Synth
+# Synthesize

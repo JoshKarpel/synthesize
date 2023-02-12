@@ -9,12 +9,19 @@ from tempfile import TemporaryDirectory
 from rich.console import Console
 from watchfiles import awatch
 
-from synth.config import Config, Restart, Target, Watch
-from synth.execution import Execution
-from synth.messages import Heartbeat, Message, Quit, TargetExited, TargetStarted, WatchPathChanged
-from synth.renderer import Renderer
-from synth.state import State
-from synth.utils import delay
+from synthesize.config import Config, Restart, Target, Watch
+from synthesize.execution import Execution
+from synthesize.messages import (
+    Heartbeat,
+    Message,
+    Quit,
+    TargetExited,
+    TargetStarted,
+    WatchPathChanged,
+)
+from synthesize.renderer import Renderer
+from synthesize.state import State
+from synthesize.utils import delay
 
 
 class Orchestrator:

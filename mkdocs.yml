@@ -1,14 +1,14 @@
-site_name: Synth
+site_name: Synthesize
 
 site_url: https://www.synth.how
-repo_url: https://github.com/JoshKarpel/synth
+repo_url: https://github.com/JoshKarpel/synthesize
 edit_uri: edit/main/docs/
 
 extra_css:
   - assets/style.css
 
 watch:
-  - synth/
+  - synthesize/
 
 theme:
   name: material
@@ -75,8 +75,8 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/JoshKarpel/synth
-      name: Synth on GitHub
+      link: https://github.com/JoshKarpel/synthesize
+      name: Synthesize on GitHub
 
 nav:
   - Introduction: index.md

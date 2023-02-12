@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from synth.config import Config, Target
+from synthesize.config import Config, Target
 
 
 @dataclass
@@ -75,7 +75,7 @@ targets:
 
 @pytest.mark.parametrize("case", CASES)
 def test_config_equivalence(case: ConfigEquivalenceCase) -> None:
-    # from_synth = Config.parse_synth(case.synth)
+    # from_synth = Config.parse_synth(case.synthesize)
     from_yaml = Config.parse_yaml(case.yaml)
 
     # assert from_synth == from_yaml == case.config

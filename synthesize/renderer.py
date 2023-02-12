@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.text import Text
 from watchfiles import Change
 
-from synth.messages import (
+from synthesize.messages import (
     CommandLifecycleEvent,
     CommandMessage,
     Message,
@@ -21,7 +21,7 @@ from synth.messages import (
     TargetStarted,
     WatchPathChanged,
 )
-from synth.state import State
+from synthesize.state import State
 
 prefix_format = "{timestamp:%H:%M:%S} {id}  "
 internal_format = "{timestamp:%H:%M:%S}"

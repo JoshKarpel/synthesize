@@ -14,9 +14,9 @@ from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
 
-from synth.config import Config
-from synth.orchestrator import Orchestrator
-from synth.state import State
+from synthesize.config import Config
+from synthesize.orchestrator import Orchestrator
+from synthesize.state import State
 
 ru.STYLE_HELPTEXT = ""
 
@@ -75,12 +75,12 @@ def find_config_file(console: Console) -> Path:
     cwd = Path.cwd()
     for dir in (cwd, *cwd.parents):
         contents = set(dir.iterdir())
-        for name in ("synthfile", "synth.yaml"):
+        for name in ("synthfile", "synthesize.yaml"):
             if (path := dir / name) in contents:
                 return path
 
         if dir / ".git" in contents:
             break
 
-    console.print(Text("Failed to find a Synth config file", style=Style(color="red")))
+    console.print(Text("Failed to find a Synthesize config file", style=Style(color="red")))
     raise Exit(code=1)

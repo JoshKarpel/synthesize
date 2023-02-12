@@ -3,8 +3,8 @@ from datetime import datetime
 from pydantic import Field
 from watchfiles import Change
 
-from synth.config import Target
-from synth.model import Model
+from synthesize.config import Target
+from synthesize.model import Model
 
 
 class Message(Model):

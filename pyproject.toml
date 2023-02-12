@@ -8,9 +8,6 @@ version = "0.0.1"
 description = "A flexible concurrent command runner."
 authors = ["Josh Karpel <josh.karpel@gmail.com>"]
 readme = "README.md"
-packages = [
-    { include = "synth" }
-]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
@@ -39,7 +36,7 @@ mkdocs-material = ">=9"
 mkdocstrings = {extras = ["python"], version = ">=0.19.0"}
 
 [tool.poetry.scripts]
-synth = 'synth.cli:cli'
+synth = 'synthesize.cli:cli'
 
 [tool.black]
 line-length = 100
@@ -54,7 +51,7 @@ all = true
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers", "-n", "auto"]
-testpaths = ["tests", "synth", "docs"]
+testpaths = ["tests", "synthesize", "docs"]
 
 markers = ["slow"]
 
