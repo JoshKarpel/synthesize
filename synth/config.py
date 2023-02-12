@@ -133,7 +133,6 @@ def parser() -> Lark:
     watch: "watch" (_META_WS META_ARG)*
     restart: "restart"
 
-
     _META_WS: /[ \t]+/
     META_ATTR: /[\w\/\-]+/
     META_ARG: /[\w\/\-]+/
