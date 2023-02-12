@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 from colorsys import hsv_to_rgb
-from functools import cache
 from pathlib import Path
 from random import random
 from textwrap import dedent
 from typing import Literal
 
 from identify.identify import tags_from_path
-from lark import Lark
+from parsy import generate, regex, string
 from pydantic import Field, validator
 from rich.color import Color
 
@@ -86,62 +85,26 @@ class Config(Model):
 
     @classmethod
     def parse_synth(cls, text: str) -> Config:
-        parsed = parser().parse(text)
-        targets = []
-        for target in parsed.children:
-            id_token, *line_trees = target.children  # type: ignore[union-attr]
-
-            metas: dict[str, object] = {}
-            command_lines = []
-            for line_tree in line_trees:
-                if line_tree.data == "meta_line":  # type: ignore[union-attr]
-                    meta = line_tree.children[0].data  # type: ignore[union-attr]
-                    args = line_tree.children[0].children  # type: ignore[union-attr]
-                    match meta:
-                        case "once":
-                            metas["lifecycle"] = Once()
-                        case "watch":
-                            metas["lifecycle"] = Watch(paths=tuple(map(str, args)))
-                        case "restart":
-                            metas["lifecycle"] = Restart()
-                        case "after":
-                            metas["after"] = tuple(map(str, args))
-
-                if line_tree.data == "command_line":  # type: ignore[union-attr]
-                    command_lines.append(line_tree.children[0].value)  # type: ignore[union-attr]
-
-            command = "".join(command_lines)
-
-            targets.append(Target(id=id_token.value, commands=command, **metas))  # type: ignore[union-attr]
-
-        return Config(targets=tuple(targets))
+        return config.parse(text)
 
 
-@cache
-def parser() -> Lark:
-    tree_grammar = r"""
-    ?start: (_NL* target)*
+@generate
+def config() -> Config:
+    targets = yield target.many()
 
-    target: ID ":" _NL meta_line* command_line+
-    ID: /[\w\-]/+
+    return Config(targets=tuple(targets))
 
-    meta_line: _META_WS "@" _meta _NL
 
-    _meta: after | watch | restart
+@generate
+def target() -> Target:
+    id = yield regex(r"[\w\-]+") << string(":") << eol
 
-    after: "after" (_META_WS META_ARG)*
-    watch: "watch" (_META_WS META_ARG)*
-    restart: "restart"
+    command_lines = yield command_line.many()
 
-    _META_WS: /[ \t]+/
-    META_ATTR: /[\w\/\-]+/
-    META_ARG: /[\w\/\-]+/
+    return Target(id=id, commands="\n".join(command_lines))
 
-    command_line: COMMAND_LINE | BLANK_LINE
-    COMMAND_LINE: /[ \t]+[\w\/\- ]*\r?\n/
-    BLANK_LINE: /\r?\n/
 
-    _NL: /\r?\n/
-    """
-
-    return Lark(tree_grammar, parser="lalr")
+indent = regex(r"[ \t]+")
+eol = regex(r"\s*\r?\n")
+command = regex(r".*\r?\n")
+command_line = indent >> command
