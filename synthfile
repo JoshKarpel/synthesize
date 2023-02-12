@@ -1,0 +1,14 @@
+tests:
+    @watch synthesize/ tests/
+
+    pytest -v
+
+types:
+    @watch synthesize/ tests/
+
+    mypy
+
+docs:
+    @restart
+
+    mkdocs serve --strict

@@ -1,0 +1,29 @@
+1:
+    sleep 2
+    echo 1
+
+2:
+    sleep 2
+    echo 2
+
+3:
+    sleep 2
+    echo 3
+
+4:
+    @after 1 2
+
+    sleep 2
+    echo 4
+
+5:
+    @after 2 3
+
+    sleep 2
+    echo 5
+
+6:
+    @after 4 5
+
+    sleep 2
+    echo 6

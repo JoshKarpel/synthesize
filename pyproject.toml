@@ -1,0 +1,78 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "synthesize"
+version = "0.0.2"
+description = "A flexible concurrent command runner."
+authors = ["Josh Karpel <josh.karpel@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10"
+pydantic = ">=1.10.4"
+rich = ">=13.3.0"
+typer = ">=0.7.0"
+click = ">=8.1.3"
+pyyaml = ">=6.0"
+networkx = ">=3.0"
+watchfiles = ">=0.18.1"
+lark = ">=1.1.5"
+identify = ">=2.5.17"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = ">=3"
+pytest = ">=7"
+pytest-cov = ">=3"
+pytest-xdist = ">=3"
+pytest-asyncio = ">=0.20"
+pytest-mock = ">=3"
+hypothesis = ">=6"
+mypy = ">=1"
+types-pyyaml = ">=6"
+mkdocs = ">=1.4"
+mkdocs-material = ">=9"
+mkdocstrings = {extras = ["python"], version = ">=0.19.0"}
+
+[tool.poetry.scripts]
+synth = 'synthesize.cli:cli'
+
+[tool.black]
+line-length = 100
+include = "\\.pyi?$"
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pycln]
+all = true
+
+[tool.pytest.ini_options]
+addopts = ["--strict-markers", "-n", "auto"]
+testpaths = ["tests", "synthesize", "docs"]
+
+markers = ["slow"]
+
+asyncio_mode = "auto"
+
+[tool.mypy]
+pretty = false
+show_error_codes = true
+
+files = ["."]
+
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+disallow_any_generics = true
+
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+warn_redundant_casts = true
+
+ignore_missing_imports = true
