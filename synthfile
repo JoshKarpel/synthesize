@@ -1,7 +1,7 @@
 tests:
     @watch synthesize/ tests/
 
-    pytest -v
+    pytest
 
 types:
     @watch synthesize/ tests/

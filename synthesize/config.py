@@ -5,10 +5,10 @@ from colorsys import hsv_to_rgb
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Literal
+from typing import Generator, Literal
 
 from identify.identify import tags_from_path
-from parsy import generate, regex, string
+from parsy import Parser, generate, regex, string
 from pydantic import Field, validator
 from rich.color import Color
 
@@ -90,27 +90,31 @@ class Config(Model):
         return cls.parse_obj(parsed)
 
 
+ConfigFragment = dict[str, object]
+ConfigFragmentGenerator = Generator[Parser, None, ConfigFragment]
+
+
 @generate
-def config():
+def config() -> ConfigFragmentGenerator:
     targets = yield target.many()
 
     return {"targets": targets}
 
 
 @generate
-def target():
+def target() -> ConfigFragmentGenerator:
     id = yield target_id << string(":") << eol
 
-    metas = yield meta.many()
-    m = dict(ChainMap(*reversed(metas)))
+    metas: list[ConfigFragment] | None = yield meta.many()
+    m = dict(ChainMap(*(metas or [])))
 
-    command_lines = yield command_line.many()
+    command_lines: list[str] | None = yield command_line.many()
 
-    return {"id": id, "commands": "".join(command_lines), **m}
+    return {"id": id, "commands": "".join(command_lines or []), **m}
 
 
 @generate
-def after():
+def after() -> ConfigFragmentGenerator:
     yield indent >> string("@after") >> padding
 
     ids = yield target_id.sep_by(padding, min=1) << eol
@@ -119,26 +123,24 @@ def after():
 
 
 @generate
-def once():
+def once() -> ConfigFragmentGenerator:
     type = yield indent >> string("@") >> string("once") << eol
 
     return {"lifecycle": {"type": type}}
 
 
 @generate
-def restart():
+def restart() -> ConfigFragmentGenerator:
     type = yield indent >> meta_marker >> string("restart") << eol.optional()
 
-    attrs = {}
     delay = yield (padding >> number << eol).optional()
-    if delay:
-        attrs["delay"] = delay
+    d: ConfigFragment = {"delay": delay} if delay else {}
 
-    return {"lifecycle": {"type": type, **attrs}}
+    return {"lifecycle": {"type": type, **d}}  # type: ignore[arg-type]
 
 
 @generate
-def watch():
+def watch() -> ConfigFragmentGenerator:
     type = yield indent >> meta_marker >> string("watch") << padding
 
     paths = yield path.sep_by(padding, min=1) << eol
@@ -146,14 +148,21 @@ def watch():
     return {"lifecycle": {"type": type, "paths": paths}}
 
 
+@generate
+def color() -> ConfigFragmentGenerator:
+    color = yield indent >> meta_marker >> string("color") >> padding >> regex(r".+") << eol
+
+    return {"color": color}
+
+
 number = regex(r"([0-9]*[.])?[0-9]+")
 padding = regex(r"[ \t]+")
 target_id = regex(r"[\w\-]+")
-path = regex(r".*")
+path = regex(r"[\w\/]*")
 indent = regex(r"[ \t]+")
 eol = regex(r"\s*\r?\n")
 command = regex(r".*\r?\n")
 command_line = (indent >> command) | eol
 meta_marker = string("@")
 lifecycle = once | restart | watch
-meta = after | lifecycle
+meta = after | lifecycle | color
