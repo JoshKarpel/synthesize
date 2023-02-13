@@ -97,14 +97,26 @@ def config() -> Config:
 
 @generate
 def target() -> Target:
-    id = yield regex(r"[\w\-]+") << string(":") << eol
+    id = yield target_id << string(":") << eol
 
+    after_ids = yield after.optional()
     command_lines = yield command_line.many()
 
-    return Target(id=id, commands="\n".join(command_lines))
+    return Target(id=id, commands="".join(command_lines), after=after_ids or ())
 
 
+@generate
+def after() -> tuple[str]:
+    yield indent >> string("@after") >> padding
+
+    ids = yield target_id.sep_by(padding, min=1) << eol
+
+    return tuple(ids)
+
+
+padding = regex(r"[ \t]+")
+target_id = regex(r"[\w\-]+")
 indent = regex(r"[ \t]+")
 eol = regex(r"\s*\r?\n")
 command = regex(r".*\r?\n")
-command_line = indent >> command
+command_line = (indent >> command) | eol
