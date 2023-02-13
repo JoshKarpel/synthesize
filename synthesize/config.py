@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import ChainMap
 from colorsys import hsv_to_rgb
 from pathlib import Path
 from random import random
@@ -85,38 +86,74 @@ class Config(Model):
 
     @classmethod
     def parse_synth(cls, text: str) -> Config:
-        return config.parse(text)
+        parsed = config.parse(text)
+        return cls.parse_obj(parsed)
 
 
 @generate
-def config() -> Config:
+def config():
     targets = yield target.many()
 
-    return Config(targets=tuple(targets))
+    return {"targets": targets}
 
 
 @generate
-def target() -> Target:
+def target():
     id = yield target_id << string(":") << eol
 
-    after_ids = yield after.optional()
+    metas = yield meta.many()
+    m = dict(ChainMap(*reversed(metas)))
+
     command_lines = yield command_line.many()
 
-    return Target(id=id, commands="".join(command_lines), after=after_ids or ())
+    return {"id": id, "commands": "".join(command_lines), **m}
 
 
 @generate
-def after() -> tuple[str]:
+def after():
     yield indent >> string("@after") >> padding
 
     ids = yield target_id.sep_by(padding, min=1) << eol
 
-    return tuple(ids)
+    return {"after": ids}
 
 
+@generate
+def once():
+    type = yield indent >> string("@") >> string("once") << eol
+
+    return {"lifecycle": {"type": type}}
+
+
+@generate
+def restart():
+    type = yield indent >> meta_marker >> string("restart") << eol.optional()
+
+    attrs = {}
+    delay = yield (padding >> number << eol).optional()
+    if delay:
+        attrs["delay"] = delay
+
+    return {"lifecycle": {"type": type, **attrs}}
+
+
+@generate
+def watch():
+    type = yield indent >> meta_marker >> string("watch") << padding
+
+    paths = yield path.sep_by(padding, min=1) << eol
+
+    return {"lifecycle": {"type": type, "paths": paths}}
+
+
+number = regex(r"([0-9]*[.])?[0-9]+")
 padding = regex(r"[ \t]+")
 target_id = regex(r"[\w\-]+")
+path = regex(r".*")
 indent = regex(r"[ \t]+")
 eol = regex(r"\s*\r?\n")
 command = regex(r".*\r?\n")
 command_line = (indent >> command) | eol
+meta_marker = string("@")
+lifecycle = once | restart | watch
+meta = after | lifecycle

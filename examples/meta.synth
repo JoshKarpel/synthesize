@@ -1,0 +1,10 @@
+hello:
+    @watch foo
+
+    echo hello world!
+
+goodbye:
+    @watch bar
+    @after hello
+
+    echo goodbye!
