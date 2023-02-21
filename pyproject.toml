@@ -10,7 +10,7 @@ authors = ["Josh Karpel <josh.karpel@gmail.com>"]
 readme = "README.md"
 homepage="https://github.com/JoshKarpel/synthesize"
 repository="https://github.com/JoshKarpel/synthesize"
-documentation="https://www.spiel.how"
+documentation="https://www.synth.how"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
