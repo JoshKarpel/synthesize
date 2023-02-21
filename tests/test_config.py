@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytest
 
@@ -84,3 +85,8 @@ def test_config_equivalence(case: ConfigEquivalenceCase) -> None:
 
     assert from_synth == from_yaml == case.config
     # assert from_yaml == case.config
+
+
+@pytest.mark.parametrize("example", list((Path(__file__).parent.parent / "examples").iterdir()))
+def test_config_examples_parse(example: Path) -> None:
+    Config.from_file(example)

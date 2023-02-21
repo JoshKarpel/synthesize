@@ -1,5 +1,11 @@
 # Changelog
 
+## `0.0.3`
+
+### Added
+
+- [#3](https://github.com/JoshKarpel/synthesize/pull/3) Added PyPI classifiers and other metadata.
+
 ## `0.0.2`
 
 Released `2023-02-12`

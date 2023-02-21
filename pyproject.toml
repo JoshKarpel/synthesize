@@ -4,10 +4,30 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "synthesize"
-version = "0.0.2"
+version = "0.0.3"
 description = "A flexible concurrent command runner."
 authors = ["Josh Karpel <josh.karpel@gmail.com>"]
 readme = "README.md"
+homepage="https://github.com/JoshKarpel/synthesize"
+repository="https://github.com/JoshKarpel/synthesize"
+documentation="https://www.spiel.how"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: Unix",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+license = "MIT"
+include = ["py.typed"]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
@@ -50,7 +70,7 @@ line_length = 100
 all = true
 
 [tool.pytest.ini_options]
-addopts = ["--strict-markers", "-n", "auto"]
+addopts = ["--strict-markers", "-n", "4", "-v"]
 testpaths = ["tests", "synthesize", "docs"]
 
 markers = ["slow"]
