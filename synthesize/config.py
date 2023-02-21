@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+from collections import ChainMap
 from colorsys import hsv_to_rgb
-from functools import cache
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Literal
+from typing import Generator, Literal
 
 from identify.identify import tags_from_path
-from lark import Lark
+from parsy import Parser, generate, regex, string
 from pydantic import Field, validator
 from rich.color import Color
 
@@ -40,7 +40,7 @@ class Watch(Lifecycle):
 def random_color() -> str:
     triplet = Color.from_rgb(*(x * 255 for x in hsv_to_rgb(random(), 1, 0.7))).triplet
 
-    if triplet is None:
+    if triplet is None:  # pragma: unreachable
         raise Exception("Failed to generate random color; please try again.")
 
     return triplet.hex
@@ -86,62 +86,83 @@ class Config(Model):
 
     @classmethod
     def parse_synth(cls, text: str) -> Config:
-        parsed = parser().parse(text)
-        targets = []
-        for target in parsed.children:
-            id_token, *line_trees = target.children  # type: ignore[union-attr]
-
-            metas: dict[str, object] = {}
-            command_lines = []
-            for line_tree in line_trees:
-                if line_tree.data == "meta_line":  # type: ignore[union-attr]
-                    meta = line_tree.children[0].data  # type: ignore[union-attr]
-                    args = line_tree.children[0].children  # type: ignore[union-attr]
-                    match meta:
-                        case "once":
-                            metas["lifecycle"] = Once()
-                        case "watch":
-                            metas["lifecycle"] = Watch(paths=tuple(map(str, args)))
-                        case "restart":
-                            metas["lifecycle"] = Restart()
-                        case "after":
-                            metas["after"] = tuple(map(str, args))
-
-                if line_tree.data == "command_line":  # type: ignore[union-attr]
-                    command_lines.append(line_tree.children[0].value)  # type: ignore[union-attr]
-
-            command = "".join(command_lines)
-
-            targets.append(Target(id=id_token.value, commands=command, **metas))  # type: ignore[union-attr]
-
-        return Config(targets=tuple(targets))
+        parsed = config.parse(text)
+        return cls.parse_obj(parsed)
 
 
-@cache
-def parser() -> Lark:
-    tree_grammar = r"""
-    ?start: (_NL* target)*
+ConfigFragment = dict[str, object]
+ConfigFragmentGenerator = Generator[Parser, None, ConfigFragment]
 
-    target: ID ":" _NL meta_line* command_line+
-    ID: /[\w\-]/+
 
-    meta_line: _META_WS "@" _meta _NL
+@generate
+def config() -> ConfigFragmentGenerator:
+    targets = yield target.many()
 
-    _meta: after | watch | restart
+    return {"targets": targets}
 
-    after: "after" (_META_WS META_ARG)*
-    watch: "watch" (_META_WS META_ARG)*
-    restart: "restart"
 
-    _META_WS: /[ \t]+/
-    META_ATTR: /[\w\/\-]+/
-    META_ARG: /[\w\/\-]+/
+@generate
+def target() -> ConfigFragmentGenerator:
+    id = yield target_id << string(":") << eol
 
-    command_line: COMMAND_LINE | BLANK_LINE
-    COMMAND_LINE: /[ \t]+[\w\/\- ]*\r?\n/
-    BLANK_LINE: /\r?\n/
+    metas: list[ConfigFragment] | None = yield meta.many()
+    m = dict(ChainMap(*(metas or [])))
 
-    _NL: /\r?\n/
-    """
+    command_lines: list[str] | None = yield command_line.many()
 
-    return Lark(tree_grammar, parser="lalr")
+    return {"id": id, "commands": "".join(command_lines or []), **m}
+
+
+@generate
+def after() -> ConfigFragmentGenerator:
+    yield indent >> string("@after") >> padding
+
+    ids = yield target_id.sep_by(padding, min=1) << eol
+
+    return {"after": ids}
+
+
+@generate
+def once() -> ConfigFragmentGenerator:
+    type = yield indent >> string("@") >> string("once") << eol
+
+    return {"lifecycle": {"type": type}}
+
+
+@generate
+def restart() -> ConfigFragmentGenerator:
+    type = yield indent >> meta_marker >> string("restart") << eol.optional()
+
+    delay = yield (padding >> number << eol).optional()
+    d: ConfigFragment = {"delay": delay} if delay else {}
+
+    return {"lifecycle": {"type": type, **d}}  # type: ignore[arg-type]
+
+
+@generate
+def watch() -> ConfigFragmentGenerator:
+    type = yield indent >> meta_marker >> string("watch") << padding
+
+    paths = yield path.sep_by(padding, min=1) << eol
+
+    return {"lifecycle": {"type": type, "paths": paths}}
+
+
+@generate
+def color() -> ConfigFragmentGenerator:
+    color = yield indent >> meta_marker >> string("color") >> padding >> regex(r".+") << eol
+
+    return {"color": color}
+
+
+number = regex(r"([0-9]*[.])?[0-9]+")
+padding = regex(r"[ \t]+")
+target_id = regex(r"[\w\-]+")
+path = regex(r"[\w\/]*")
+indent = regex(r"[ \t]+")
+eol = regex(r"\s*\r?\n")
+command = regex(r".*\r?\n")
+command_line = (indent >> command) | eol
+meta_marker = string("@")
+lifecycle = once | restart | watch
+meta = after | lifecycle | color

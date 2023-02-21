@@ -1,7 +1,7 @@
 tests:
-    @watch synthesize/ tests/
+    @watch synthesize/ tests/ examples/
 
-    pytest -v
+    pytest --cov
 
 types:
     @watch synthesize/ tests/

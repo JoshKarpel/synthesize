@@ -7,10 +7,12 @@ from typing import Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
+from parsy import ParseError
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
 from rich.style import Style
+from rich.table import Table
 from rich.text import Text
 from typer import Argument, Option, Typer
 
@@ -45,7 +47,24 @@ def run(
 
     config = config or find_config_file(console)
 
-    parsed_config = Config.from_file(config)
+    try:
+        parsed_config = Config.from_file(config)
+    except ParseError as e:
+        console.print(e)
+        stream = Text.assemble(
+            Text.from_markup(
+                e.stream[: e.index].replace("\n", "[dim]\\n[/dim]\n"), style=Style(bgcolor="green")
+            ),
+            Text.from_markup(
+                e.stream[e.index :].replace("\n", "[dim]\\n[/dim]\n"), style=Style(bgcolor="red")
+            ),
+        )
+        lines = stream.split()
+        grid = Table.grid(padding=(0, 0, 0, 1))
+        for idx, line in enumerate(lines):
+            grid.add_row(Text(f"{idx:>2}", style=Style(dim=True)), line)
+        console.print(Panel.fit(grid))
+        raise Exit(code=1)
 
     if dry:
         console.print(

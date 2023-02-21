@@ -1,0 +1,16 @@
+hello:
+    @once
+    @watch foo
+
+    echo hello world!
+
+goodbye:
+    @watch bar
+    @after hello
+
+    echo goodbye!
+
+restart:
+    @restart 2
+
+    echo restart!

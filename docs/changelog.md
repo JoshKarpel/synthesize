@@ -2,9 +2,12 @@
 
 ## `0.0.3`
 
+*Unreleased*
+
 ### Added
 
 - [#3](https://github.com/JoshKarpel/synthesize/pull/3) Added PyPI classifiers and other metadata.
+- [#4](https://github.com/JoshKarpel/synthesize/pull/4) Switch to Parsy (from Lark) for parsing `synthfile`s and hit 100% coverage of the underlying format.
 
 ## `0.0.2`
 
