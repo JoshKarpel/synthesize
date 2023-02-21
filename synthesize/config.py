@@ -40,7 +40,7 @@ class Watch(Lifecycle):
 def random_color() -> str:
     triplet = Color.from_rgb(*(x * 255 for x in hsv_to_rgb(random(), 1, 0.7))).triplet
 
-    if triplet is None:
+    if triplet is None:  # pragma: unreachable
         raise Exception("Failed to generate random color; please try again.")
 
     return triplet.hex

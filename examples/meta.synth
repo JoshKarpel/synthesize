@@ -1,4 +1,5 @@
 hello:
+    @once
     @watch foo
 
     echo hello world!
@@ -8,3 +9,8 @@ goodbye:
     @after hello
 
     echo goodbye!
+
+restart:
+    @restart 2
+
+    echo restart!
