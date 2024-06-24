@@ -31,7 +31,7 @@ include = ["py.typed"]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-pydantic = ">=1.10"
+pydantic = ">=2"
 rich = ">=13.3"
 typer = ">=0.7"
 click = ">=8.1"
@@ -39,7 +39,6 @@ pyyaml = ">=6.0"
 networkx = ">=3.0"
 watchfiles = ">=0.18"
 identify = ">=2.5"
-parsy = ">=2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = ">=3"
@@ -61,13 +60,6 @@ synth = 'synthesize.cli:cli'
 [tool.black]
 line-length = 100
 include = "\\.pyi?$"
-
-[tool.isort]
-profile = "black"
-line_length = 100
-
-[tool.pycln]
-all = true
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers", "-n", "4", "-v"]
@@ -96,3 +88,32 @@ warn_unreachable = true
 warn_redundant_casts = true
 
 ignore_missing_imports = true
+
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "I",   # https://beta.ruff.rs/docs/rules/#isort-i
+    "F",   # https://beta.ruff.rs/docs/rules/#pyflakes-f
+    "E",   # https://beta.ruff.rs/docs/rules/#error-e
+    "W",   # https://beta.ruff.rs/docs/rules/#warning-w
+    "T20", # https://beta.ruff.rs/docs/rules/#flake8-print-t20
+    "PIE", # https://beta.ruff.rs/docs/rules/#flake8-pie-pie
+    "PLC", # https://beta.ruff.rs/docs/rules/#convention-plc
+    "PLE", # https://beta.ruff.rs/docs/rules/#error-ple
+    "PLW", # https://beta.ruff.rs/docs/rules/#warning-plw
+    "PTH", # https://beta.ruff.rs/docs/rules/#flake8-use-pathlib-pth
+    "PGH", # https://beta.ruff.rs/docs/rules/#pygrep-hooks-pgh
+    "RUF", # https://beta.ruff.rs/docs/rules/#ruff-specific-rules-ruf
+]
+
+ignore = [
+    "E501",  # line length exceeds limit
+    "E741",  # ambiguous variable name
+    "T201",  # print
+    "T203",  # pprint
+    "F403",  # star imports, used for utilities
+    "F405",  # star imports, used for utilities
+]
