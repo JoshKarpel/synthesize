@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import Field
 from watchfiles import Change
 
-from synthesize.config import Target
+from synthesize.config import FlowNode
 from synthesize.model import Model
 
 
@@ -11,26 +11,24 @@ class Message(Model):
     timestamp: datetime = Field(default_factory=datetime.now)
 
 
-class CommandLifecycleEvent(Message):
-    target: Target
+class ExecutionStarted(Message):
+    node: FlowNode
     pid: int
 
 
-class TargetStarted(CommandLifecycleEvent):
-    pass
-
-
-class TargetExited(CommandLifecycleEvent):
+class ExecutionCompleted(Message):
+    node: FlowNode
+    pid: int
     exit_code: int
 
 
-class CommandMessage(Message):
-    target: Target
+class ExecutionOutput(Message):
+    node: FlowNode
     text: str
 
 
 class WatchPathChanged(Message):
-    target: Target
+    node: FlowNode
     changes: set[tuple[Change, str]]
 
 

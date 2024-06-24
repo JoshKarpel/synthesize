@@ -11,17 +11,17 @@ from rich.rule import Rule
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
+from typing_extensions import assert_never
 from watchfiles import Change
 
 from synthesize.messages import (
-    CommandLifecycleEvent,
-    CommandMessage,
+    ExecutionCompleted,
+    ExecutionOutput,
+    ExecutionStarted,
     Message,
-    TargetExited,
-    TargetStarted,
     WatchPathChanged,
 )
-from synthesize.state import State
+from synthesize.state import FlowState
 
 prefix_format = "{timestamp:%H:%M:%S} {id}  "
 internal_format = "{timestamp:%H:%M:%S}"
@@ -33,7 +33,7 @@ CHANGE_TO_STYLE = {
 
 
 class Renderer:
-    def __init__(self, state: State, console: Console):
+    def __init__(self, state: FlowState, console: Console):
         self.state = state
         self.console = console
 
@@ -52,16 +52,10 @@ class Renderer:
 
     def handle_message(self, message: Message) -> None:
         match message:
-            case CommandMessage() as msg:
+            case ExecutionOutput() as msg:
                 self.handle_command_message(msg)
 
-            case TargetStarted() as msg:
-                self.handle_lifecycle_message(msg)
-
-            case TargetExited() as msg:
-                self.handle_lifecycle_message(msg)
-
-            case WatchPathChanged() as msg:
+            case ExecutionStarted() | ExecutionCompleted() | WatchPathChanged() as msg:
                 self.handle_lifecycle_message(msg)
 
         self.update(message)
@@ -69,7 +63,7 @@ class Renderer:
     def info(self, event: Message) -> RenderableType:
         table = Table.grid(padding=(1, 1, 0, 0))
 
-        running_targets = self.state.running_targets()
+        running_targets = self.state.running_nodes()
 
         running = (
             Text.assemble(
@@ -91,16 +85,16 @@ class Renderer:
         return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)
 
     def render_prefix(
-        self, message: CommandMessage | CommandLifecycleEvent | WatchPathChanged
+        self, message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged
     ) -> str:
         return prefix_format.format_map(
-            {"id": message.target.id, "timestamp": message.timestamp}
+            {"id": message.node.id, "timestamp": message.timestamp}
         ).ljust(self.prefix_width)
 
-    def handle_command_message(self, message: CommandMessage) -> None:
+    def handle_command_message(self, message: ExecutionOutput) -> None:
         prefix = Text(
             self.render_prefix(message),
-            style=Style(color=message.target.color),
+            style=Style(color=message.node.color),
         )
 
         body = Text.from_ansi(message.text)
@@ -110,39 +104,43 @@ class Renderer:
 
         self.console.print(g)
 
-    def handle_lifecycle_message(self, message: CommandLifecycleEvent | WatchPathChanged) -> None:
+    def handle_lifecycle_message(
+        self, message: ExecutionStarted | ExecutionCompleted | WatchPathChanged
+    ) -> None:
         prefix = Text.from_markup(
             self.render_prefix(message),
-            style=Style(color=message.target.color),
+            style=Style(color=message.node.color),
         )
 
         parts: tuple[str | tuple[str, str] | tuple[str, Style] | Text, ...]
 
         match message:
-            case TargetStarted(target=target, pid=pid):
+            case ExecutionStarted(node=node, pid=pid):
                 parts = (
-                    "Target ",
-                    (target.id, target.color),
+                    "Node ",
+                    (node.id, node.color),
                     f" started (pid {pid})",
                 )
-            case TargetExited(target=target, pid=pid, exit_code=exit_code):
+            case ExecutionCompleted(node=node, pid=pid, exit_code=exit_code):
                 parts = (
-                    "Target ",
-                    (target.id, target.color),
+                    "Node ",
+                    (node.id, node.color),
                     f" (pid {pid}) exited with code ",
                     (str(exit_code), "green" if exit_code == 0 else "red"),
                 )
-            case WatchPathChanged(target=target):
+            case WatchPathChanged(node=node):
                 changes = Text(" ").join(
                     Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes
                 )
 
                 parts = (
-                    "Running target ",
-                    (target.id, target.color),
+                    "Running node ",
+                    (node.id, node.color),
                     " due to detected changes: ",
                     changes,
                 )
+            case _:
+                assert_never(message)
 
         body = Text.assemble(
             *parts,
@@ -171,7 +169,7 @@ class Renderer:
             max(
                 (
                     prefix_format.format_map({"timestamp": now, "id": t.id})
-                    for t in self.state.targets()
+                    for t in self.state.nodes()
                 ),
                 key=len,
             )

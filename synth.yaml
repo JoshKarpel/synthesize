@@ -1,0 +1,39 @@
+flows:
+  default:
+    nodes:
+      - id: tests
+        target:
+          id: tests
+        trigger:
+          id: code-changes
+      - id: types
+        target:
+          id: types
+        trigger:
+          id: code-changes
+      - id: docs
+        target:
+          id: docs
+        trigger:
+          type: restart
+
+targets:
+  tests:
+    commands: |
+      pytest --cov
+
+  types:
+    commands: |
+      mypy
+
+  docs:
+    commands: |
+      mkdocs serve --strict
+
+triggers:
+  code-changes:
+    type: watch
+    paths:
+      - synthesize/
+      - tests/
+      - examples/

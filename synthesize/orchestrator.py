@@ -9,28 +9,28 @@ from tempfile import TemporaryDirectory
 from rich.console import Console
 from watchfiles import awatch
 
-from synthesize.config import Config, Restart, Target, Watch
+from synthesize.config import Flow, FlowNode, Restart, Watch
 from synthesize.execution import Execution
 from synthesize.messages import (
+    ExecutionCompleted,
+    ExecutionStarted,
     Heartbeat,
     Message,
     Quit,
-    TargetExited,
-    TargetStarted,
     WatchPathChanged,
 )
 from synthesize.renderer import Renderer
-from synthesize.state import State
+from synthesize.state import FlowState
 from synthesize.utils import delay
 
 
 class Orchestrator:
-    def __init__(self, config: Config, state: State, console: Console):
-        self.config = config
+    def __init__(self, flow: Flow, console: Console):
+        self.flow = flow
         self.console = console
-        self.state = state
 
-        self.renderer = Renderer(state=state, console=console)
+        self.state = FlowState.from_flow(flow=flow)
+        self.renderer = Renderer(state=self.state, console=console)
 
         self.inbox: Queue[Message] = Queue()
 
@@ -39,8 +39,8 @@ class Orchestrator:
         self.watchers: dict[str, Task[None]] = {}
         self.heartbeat: Task[None] | None = None
 
-    async def start(self) -> None:
-        if not self.state.targets():
+    async def run(self) -> None:
+        if not self.state.nodes():
             return
 
         with TemporaryDirectory(prefix="snyth-") as tmpdir, self.renderer:
@@ -75,23 +75,23 @@ class Orchestrator:
 
         while True:
             match message := await self.inbox.get():
-                case TargetStarted(target=target):
-                    self.state.mark_running(target)
+                case ExecutionStarted(node=node):
+                    self.state.mark_running(node)
 
-                case TargetExited(target=target, exit_code=exit_code):
-                    if isinstance(target.lifecycle, Restart):
-                        self.state.mark_pending(target)
+                case ExecutionCompleted(node=node, exit_code=exit_code):
+                    if isinstance(node.trigger, Restart):
+                        self.state.mark_pending(node)
                     else:
                         if exit_code == 0:
-                            self.state.mark_success(target)
+                            self.state.mark_success(node)
                         else:
-                            self.state.mark_failure(target)
+                            self.state.mark_failure(node)
 
-                case WatchPathChanged(target=target):
-                    if e := self.executions.get(target.id):
+                case WatchPathChanged(node=node):
+                    if e := self.executions.get(node.id):
                         e.terminate()
 
-                    self.state.mark_descendants_pending(target)
+                    self.state.mark_descendants_pending(node)
 
                 case Quit():
                     return
@@ -112,40 +112,41 @@ class Orchestrator:
         self.heartbeat = create_task(heartbeat())
 
     async def start_ready_targets(self, tmp_dir: Path) -> None:
-        for t in self.state.ready_targets():
-            if e := self.executions.get(t.id):
+        for ready_node in self.state.ready_nodes():
+            if e := self.executions.get(ready_node.id):
                 if not e.has_exited:
                     continue
 
-            self.state.mark_running(t)
+            self.state.mark_running(ready_node)
 
             async def start() -> None:
                 e = await Execution.start(
-                    target=t,
+                    node=ready_node,
                     events=self.inbox,
                     width=self.console.width - self.renderer.prefix_width,
                     tmp_dir=tmp_dir,
                 )
-                self.executions[t.id] = e
-                self.waiters[t.id] = create_task(e.wait())
+                self.executions[ready_node.id] = e
+                self.waiters[ready_node.id] = create_task(e.wait())
 
             # When restarting after first execution, delay
-            if isinstance(t.lifecycle, Restart) and t.id in self.executions:
-                delay(t.lifecycle.delay, start)
+            if isinstance(ready_node.trigger, Restart) and ready_node.id in self.executions:
+                delay(ready_node.trigger.delay, start)
             else:
                 await start()
 
     async def start_watchers(self) -> None:
-        for t in self.config.targets:
-            if isinstance(t.lifecycle, Watch):
-                self.watchers[t.id] = create_task(
-                    watch(target=t, paths=t.lifecycle.paths, events=self.inbox)
+        for node in self.flow.nodes:
+            if isinstance(node.trigger, Watch):
+                self.watchers[node.id] = create_task(
+                    watch(
+                        node=node,
+                        paths=node.trigger.paths,
+                        events=self.inbox,
+                    )
                 )
 
 
-async def watch(target: Target, paths: Iterable[str | Path], events: Queue[Message]) -> None:
-    try:
-        async for changes in awatch(*paths):
-            await events.put(WatchPathChanged(target=target, changes=changes))
-    except RuntimeError:
-        pass
+async def watch(node: FlowNode, paths: Iterable[str | Path], events: Queue[Message]) -> None:
+    async for changes in awatch(*paths):
+        await events.put(WatchPathChanged(node=node, changes=changes))

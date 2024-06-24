@@ -7,27 +7,28 @@ from typing import Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
-from parsy import ParseError
+from pydantic import ValidationError
 from rich.console import Console
 from rich.json import JSON
 from rich.panel import Panel
 from rich.style import Style
-from rich.table import Table
 from rich.text import Text
 from typer import Argument, Option, Typer
 
 from synthesize.config import Config
 from synthesize.orchestrator import Orchestrator
-from synthesize.state import State
 
 ru.STYLE_HELPTEXT = ""
 
-cli = Typer()
+cli = Typer(pretty_exceptions_enable=False)
 
 
 @cli.command()
 def run(
-    target: list[str] = Argument(None),
+    flow: str = Argument(
+        default="default",
+        help="The flow to execute.",
+    ),
     config: Optional[Path] = Option(
         default=None,
         exists=True,
@@ -38,7 +39,7 @@ def run(
     ),
     dry: bool = Option(
         False,
-        help="If enabled, do not run actually run any commands.",
+        help="If enabled, do not run actually run the flow.",
     ),
 ) -> None:
     start_time = monotonic()
@@ -49,39 +50,30 @@ def run(
 
     try:
         parsed_config = Config.from_file(config)
-    except ParseError as e:
-        console.print(e)
-        stream = Text.assemble(
-            Text.from_markup(
-                e.stream[: e.index].replace("\n", "[dim]\\n[/dim]\n"), style=Style(bgcolor="green")
-            ),
-            Text.from_markup(
-                e.stream[e.index :].replace("\n", "[dim]\\n[/dim]\n"), style=Style(bgcolor="red")
-            ),
-        )
-        lines = stream.split()
-        grid = Table.grid(padding=(0, 0, 0, 1))
-        for idx, line in enumerate(lines):
-            grid.add_row(Text(f"{idx:>2}", style=Style(dim=True)), line)
-        console.print(Panel.fit(grid))
+    except ValidationError as e:
+        for err in e.errors():
+            loc = ".".join(map(str, err["loc"]))
+            msg = err["msg"]
+            console.print(f"[red]ERROR[/red] {loc} -> {msg}")
         raise Exit(code=1)
 
     if dry:
         console.print(
             Panel(
-                JSON.from_data(parsed_config.dict()),
+                JSON(parsed_config.model_dump_json(exclude_unset=True)),
                 title="Configuration",
                 title_align="left",
             )
         )
+
         return
 
-    state = State.from_targets(
-        config=parsed_config, target_ids=set(target or {t.id for t in parsed_config.targets})
-    )
-    controller = Orchestrator(config=parsed_config, state=state, console=console)
+    resolved = parsed_config.resolve()
+
+    controller = Orchestrator(flow=resolved[flow], console=console)
+
     try:
-        asyncio.run(controller.start())
+        asyncio.run(controller.run())
     except KeyboardInterrupt:
         raise Exit(code=0)
     finally:
@@ -94,7 +86,7 @@ def find_config_file(console: Console) -> Path:
     cwd = Path.cwd()
     for dir in (cwd, *cwd.parents):
         contents = set(dir.iterdir())
-        for name in ("synthfile", "synthesize.yaml"):
+        for name in ("synth.yaml",):
             if (path := dir / name) in contents:
                 return path
 
