@@ -2,7 +2,10 @@
 
 ## `0.0.3`
 
-*Unreleased*
+- [#30](https://github.com/JoshKarpel/synthesize/pull/30)
+  Reorganized configuration to separate targets,
+  triggers (formerly "lifecycles"),
+  and flows (graphs of targets and triggers)."
 
 ### Added
 
