@@ -11,6 +11,7 @@ from rich.rule import Rule
 from rich.style import Style
 from rich.table import Table
 from rich.text import Text
+from typing_extensions import assert_never
 from watchfiles import Change
 
 from synthesize.messages import (
@@ -110,7 +111,9 @@ class Renderer:
 
         self.console.print(g)
 
-    def handle_lifecycle_message(self, message: CommandLifecycleEvent | WatchPathChanged) -> None:
+    def handle_lifecycle_message(
+        self, message: ExecutionStarted | ExecutionCompleted | WatchPathChanged
+    ) -> None:
         prefix = Text.from_markup(
             self.render_prefix(message),
             style=Style(color=message.node.color),
@@ -143,6 +146,8 @@ class Renderer:
                     " due to detected changes: ",
                     changes,
                 )
+            case _:
+                assert_never(message)
 
         body = Text.assemble(
             *parts,

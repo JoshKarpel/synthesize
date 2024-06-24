@@ -7,7 +7,7 @@ from textwrap import dedent
 from typing import Annotated, Literal, Union
 
 from identify.identify import tags_from_path
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from rich.color import Color
 
 from synthesize.model import Model
@@ -26,7 +26,8 @@ class Target(Model):
     commands: str = Field(default="")
     executable: str = Field(default="sh -u")
 
-    @validator("commands")
+    @field_validator("commands")
+    @classmethod
     def dedent_commands(cls, commands: str) -> str:
         return dedent(commands).strip()
 
@@ -100,9 +101,9 @@ class UnresolvedFlowNode(Model):
     ) -> FlowNode:
         return FlowNode(
             id=self.id,
-            target=self.target if isinstance(self.target, Target) else targets[self.target.id],
+            target=targets[self.target.id] if isinstance(self.target, TargetRef) else self.target,
             trigger=(
-                self.trigger if isinstance(self.trigger, AnyTrigger) else triggers[self.trigger.id]
+                triggers[self.trigger.id] if isinstance(self.trigger, TriggerRef) else self.trigger
             ),
             color=self.color,
         )

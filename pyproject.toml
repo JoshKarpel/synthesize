@@ -44,7 +44,6 @@ identify = ">=2.5"
 pre-commit = ">=3"
 pytest = ">=7"
 pytest-cov = ">=3"
-pytest-xdist = ">=3"
 pytest-asyncio = ">=0.20"
 pytest-mock = ">=3"
 hypothesis = ">=6"
@@ -62,7 +61,7 @@ line-length = 100
 include = "\\.pyi?$"
 
 [tool.pytest.ini_options]
-addopts = ["--strict-markers", "-n", "4", "-v"]
+addopts = ["--strict-markers", "-v"]
 testpaths = ["tests", "synthesize", "docs"]
 
 markers = ["slow"]

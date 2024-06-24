@@ -18,7 +18,4 @@ class Model(BaseModel):
 
     @classmethod
     def parse_yaml(cls: Type[C], y: str) -> C:
-        return cls.parse_obj(yaml.safe_load(y))
-
-    def yaml(self) -> str:
-        return yaml.dump(self.dict())
+        return cls.model_validate(yaml.safe_load(y))

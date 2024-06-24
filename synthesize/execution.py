@@ -117,7 +117,7 @@ class Execution:
         self._send_signal(SIGKILL)
 
     async def wait(self) -> Execution:
-        await self.process.wait()
+        exit_code = await self.process.wait()
 
         await self.reader
 
@@ -125,7 +125,7 @@ class Execution:
             ExecutionCompleted(
                 node=self.node,
                 pid=self.pid,
-                exit_code=self.exit_code,
+                exit_code=exit_code,
             )
         )
 

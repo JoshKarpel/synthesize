@@ -13,7 +13,7 @@ from rich.json import JSON
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
-from typer import Option, Typer
+from typer import Argument, Option, Typer
 
 from synthesize.config import Config
 from synthesize.orchestrator import Orchestrator
@@ -25,7 +25,10 @@ cli = Typer(pretty_exceptions_enable=False)
 
 @cli.command()
 def run(
-    flow: str,
+    flow: str = Argument(
+        default="default",
+        help="The flow to execute.",
+    ),
     config: Optional[Path] = Option(
         default=None,
         exists=True,
@@ -36,7 +39,7 @@ def run(
     ),
     dry: bool = Option(
         False,
-        help="If enabled, do not run actually run any commands.",
+        help="If enabled, do not run actually run the flow.",
     ),
 ) -> None:
     start_time = monotonic()
@@ -83,7 +86,7 @@ def find_config_file(console: Console) -> Path:
     cwd = Path.cwd()
     for dir in (cwd, *cwd.parents):
         contents = set(dir.iterdir())
-        for name in ("synthfile", "synthesize.yaml"):
+        for name in ("synth.yaml",):
             if (path := dir / name) in contents:
                 return path
 
