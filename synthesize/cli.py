@@ -13,20 +13,19 @@ from rich.json import JSON
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
-from typer import Argument, Option, Typer
+from typer import Option, Typer
 
 from synthesize.config import Config
 from synthesize.orchestrator import Orchestrator
-from synthesize.state import State
 
 ru.STYLE_HELPTEXT = ""
 
-cli = Typer()
+cli = Typer(pretty_exceptions_enable=False)
 
 
 @cli.command()
 def run(
-    target: list[str] = Argument(None),
+    flow: str,
     config: Optional[Path] = Option(
         default=None,
         exists=True,
@@ -58,19 +57,20 @@ def run(
     if dry:
         console.print(
             Panel(
-                JSON.from_data(parsed_config.dict(exclude_unset=True)),
+                JSON(parsed_config.model_dump_json(exclude_unset=True)),
                 title="Configuration",
                 title_align="left",
             )
         )
+
         return
 
-    state = State.from_targets(
-        config=parsed_config, target_ids=set(target or {t.id for t in parsed_config.targets})
-    )
-    controller = Orchestrator(config=parsed_config, state=state, console=console)
+    resolved = parsed_config.resolve()
+
+    controller = Orchestrator(flow=resolved[flow], console=console)
+
     try:
-        asyncio.run(controller.start())
+        asyncio.run(controller.run())
     except KeyboardInterrupt:
         raise Exit(code=0)
     finally:

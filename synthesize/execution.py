@@ -12,23 +12,23 @@ from pathlib import Path
 from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
 
-from synthesize.config import Target
-from synthesize.messages import CommandMessage, Message, TargetExited, TargetStarted
+from synthesize.config import FlowNode
+from synthesize.messages import CommandMessage, ExecutionCompleted, ExecutionStarted, Message
 
 
 @lru_cache(maxsize=2**10)
-def file_name(target: Target) -> str:
+def file_name(node: FlowNode) -> str:
     h = md5()
-    h.update(target.id.encode())
-    h.update(target.executable.encode())
-    h.update(target.commands.encode())
+    h.update(node.id.encode())
+    h.update(node.target.executable.encode())
+    h.update(node.target.commands.encode())
 
-    return f"{target.id}-{h.hexdigest()}"
+    return f"{node.id}-{h.hexdigest()}"
 
 
 @dataclass(frozen=True)
 class Execution:
-    target: Target
+    node: FlowNode
 
     events: Queue[Message] = field(repr=False)
 
@@ -40,14 +40,14 @@ class Execution:
     @classmethod
     async def start(
         cls,
-        target: Target,
+        node: FlowNode,
         events: Queue[Message],
         tmp_dir: Path,
         width: int = 80,
     ) -> Execution:
-        path = tmp_dir / file_name(target)
+        path = tmp_dir / file_name(node)
         path.parent.mkdir(parents=True, exist_ok=True)
-        exe, *args = shlex.split(target.executable)
+        exe, *args = shlex.split(node.target.executable)
         which_exe = shutil.which(exe)
         if which_exe is None:
             raise Exception(f"Failed to find absolute path to executable for {exe}")
@@ -56,7 +56,7 @@ class Execution:
                 (
                     f"#! {shlex.join((which_exe, *args))}",
                     "",
-                    target.commands,
+                    node.target.commands,
                 )
             )
         )
@@ -72,17 +72,17 @@ class Execution:
 
         reader = create_task(
             read_output(
-                target=target,
+                node=node,
                 process=process,
                 events=events,
             ),
-            name=f"Read output for {target.id}",
+            name=f"Read output for {node.id}",
         )
 
-        await events.put(TargetStarted(target=target, pid=process.pid))
+        await events.put(ExecutionStarted(node=node, pid=process.pid))
 
         return cls(
-            target=target,
+            node=node,
             events=events,
             process=process,
             reader=reader,
@@ -122,8 +122,8 @@ class Execution:
         await self.reader
 
         await self.events.put(
-            TargetExited(
-                target=self.target,
+            ExecutionCompleted(
+                node=self.node,
                 pid=self.pid,
                 exit_code=self.exit_code,
             )
@@ -132,7 +132,7 @@ class Execution:
         return self
 
 
-async def read_output(target: Target, process: Process, events: Queue[Message]) -> None:
+async def read_output(node: FlowNode, process: Process, events: Queue[Message]) -> None:
     if process.stdout is None:  # pragma: unreachable
         raise Exception(f"{process} does not have an associated stream reader")
 
@@ -143,7 +143,7 @@ async def read_output(target: Target, process: Process, events: Queue[Message]) 
 
         await events.put(
             CommandMessage(
-                target=target,
+                node=node,
                 text=line.decode("utf-8").rstrip(),
             )
         )

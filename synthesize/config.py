@@ -38,15 +38,20 @@ class Once(Model):
 class After(Model):
     type: Literal["after"] = "after"
 
-    after: tuple[str, ...] = Field(default=...)
+    after: frozenset[str] = Field(default=...)
 
 
 class Restart(Model):
     type: Literal["restart"] = "restart"
 
-    delay: float = Field(
-        default=1, description="The delay before restarting the command after it exits.", ge=0
-    )
+    delay: Annotated[
+        float,
+        Field(
+            default=1,
+            description="The delay before restarting the command after it exits.",
+            ge=0,
+        ),
+    ]
 
 
 class Watch(Model):
@@ -63,10 +68,17 @@ AnyTrigger = Union[
 ]
 
 
-class TargetRef(Model):
+class FlowNode(Model):
     id: str
 
-    args: Annotated[dict[str, str], Field(default_factory=dict)]
+    target: Target
+    trigger: AnyTrigger
+
+    color: str
+
+
+class TargetRef(Model):
+    id: str
 
 
 class TriggerRef(Model):
@@ -81,9 +93,30 @@ class UnresolvedFlowNode(Model):
 
     color: Annotated[str, Field(default_factory=random_color)]
 
+    def resolve(
+        self,
+        targets: dict[str, Target],
+        triggers: dict[str, AnyTrigger],
+    ) -> FlowNode:
+        return FlowNode(
+            id=self.id,
+            target=self.target if isinstance(self.target, Target) else targets[self.target.id],
+            trigger=(
+                self.trigger if isinstance(self.trigger, AnyTrigger) else triggers[self.trigger.id]
+            ),
+            color=self.color,
+        )
+
+
+class Flow(Model):
+    nodes: tuple[FlowNode, ...]
+
 
 class UnresolvedFlow(Model):
     nodes: tuple[UnresolvedFlowNode, ...]
+
+    def resolve(self, targets: dict[str, Target], triggers: dict[str, AnyTrigger]) -> Flow:
+        return Flow(nodes=tuple(node.resolve(targets, triggers) for node in self.nodes))
 
 
 class Config(Model):
@@ -99,3 +132,6 @@ class Config(Model):
             return cls.parse_yaml(file.read_text())
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
+
+    def resolve(self) -> dict[str, Flow]:
+        return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}

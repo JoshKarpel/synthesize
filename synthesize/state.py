@@ -5,10 +5,10 @@ from enum import Enum
 
 from networkx import DiGraph, ancestors, descendants
 
-from synthesize.config import Config, Target
+from synthesize.config import After, Flow, FlowNode
 
 
-class TargetStatus(Enum):
+class FlowNodeStatus(Enum):
     Pending = "pending"
     Running = "running"
     Succeeded = "succeeded"
@@ -16,71 +16,70 @@ class TargetStatus(Enum):
 
 
 @dataclass(frozen=True)
-class State:
+class FlowState:
     graph: DiGraph
-    id_to_target: dict[str, Target]
-    id_to_status: dict[str, TargetStatus]
+    id_to_node: dict[str, FlowNode]
+    id_to_status: dict[str, FlowNodeStatus]
 
     @classmethod
-    def from_targets(cls, config: Config, target_ids: set[str]) -> State:
-        id_to_target = {target.id: target for target in config.targets}
+    def from_flow(cls, flow: Flow) -> FlowState:
+        id_to_node = {node.id: node for node in flow.nodes}
 
         graph = DiGraph()
 
-        for id, target in id_to_target.items():
-            graph.add_node(target.id)
-            for predecessor_id in target.after:
-                graph.add_edge(predecessor_id, id)
+        for id, node in id_to_node.items():
+            graph.add_node(node.id)
+            if isinstance(node.trigger, After):
+                for predecessor_id in node.trigger.after:
+                    graph.add_edge(predecessor_id, id)
 
-        filtered = graph.subgraph(_ancestors(graph, target_ids))
-
-        return State(
-            graph=filtered,
-            id_to_target={id: target for id, target in id_to_target.items() if id in filtered},
-            id_to_status={id: TargetStatus.Pending for id in filtered.nodes},
+        return FlowState(
+            graph=graph,
+            id_to_node={id: node for id, node in id_to_node.items()},
+            id_to_status={id: FlowNodeStatus.Pending for id in graph.nodes},
         )
 
-    def running_targets(self) -> set[Target]:
+    def running_nodes(self) -> set[FlowNode]:
         return {
-            self.id_to_target[id]
+            self.id_to_node[id]
             for id, status in self.id_to_status.items()
-            if status is TargetStatus.Running
+            if status is FlowNodeStatus.Running
         }
 
-    def ready_targets(self) -> set[Target]:
+    def ready_nodes(self) -> set[FlowNode]:
         return {
-            self.id_to_target[id]
+            self.id_to_node[id]
             for id in self.graph.nodes
-            if self.id_to_status[id] is TargetStatus.Pending
+            if self.id_to_status[id] is FlowNodeStatus.Pending
             and all(
-                self.id_to_status[a] is TargetStatus.Succeeded for a in ancestors(self.graph, id)
+                self.id_to_status[a] is FlowNodeStatus.Succeeded for a in ancestors(self.graph, id)
             )
         }
 
-    def mark_success(self, target: Target) -> None:
-        self.id_to_status[target.id] = TargetStatus.Succeeded
+    def mark_success(self, node: FlowNode) -> None:
+        self.id_to_status[node.id] = FlowNodeStatus.Succeeded
 
-    def mark_failure(self, target: Target) -> None:
-        self.id_to_status[target.id] = TargetStatus.Failed
+    def mark_failure(self, node: FlowNode) -> None:
+        self.id_to_status[node.id] = FlowNodeStatus.Failed
 
-    def mark_pending(self, target: Target) -> None:
-        self.id_to_status[target.id] = TargetStatus.Pending
+    def mark_pending(self, node: FlowNode) -> None:
+        self.id_to_status[node.id] = FlowNodeStatus.Pending
 
-    def mark_descendants_pending(self, target: Target) -> None:
-        for t in _descendants(self.graph, {target.id}):
-            self.id_to_status[t] = TargetStatus.Pending
+    def mark_descendants_pending(self, node: FlowNode) -> None:
+        for t in _descendants(self.graph, {node.id}):
+            self.id_to_status[t] = FlowNodeStatus.Pending
 
-    def mark_running(self, target: Target) -> None:
-        self.id_to_status[target.id] = TargetStatus.Running
+    def mark_running(self, node: FlowNode) -> None:
+        self.id_to_status[node.id] = FlowNodeStatus.Running
 
     def all_done(self) -> bool:
-        return all(status is TargetStatus.Succeeded for status in self.id_to_status.values())
+        return all(status is FlowNodeStatus.Succeeded for status in self.id_to_status.values())
 
-    def num_targets(self) -> int:
+    def num_nodes(self) -> int:
         return len(self.graph)
 
-    def targets(self) -> set[Target]:
-        return set(self.id_to_target.values())
+    def nodes(self) -> set[FlowNode]:
+        return set(self.id_to_node.values())
 
 
 def _ancestors(graph: DiGraph, nodes: set[str]) -> set[str]:
