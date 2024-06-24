@@ -4,7 +4,7 @@ from colorsys import hsv_to_rgb
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Literal, Union
+from typing import Annotated, Literal, Union
 
 from identify.identify import tags_from_path
 from pydantic import Field, validator
@@ -26,28 +26,22 @@ class Target(Model):
     commands: str = Field(default="")
     executable: str = Field(default="sh -u")
 
-    color: str = Field(default_factory=random_color)
-
     @validator("commands")
     def dedent_commands(cls, commands: str) -> str:
         return dedent(commands).strip()
 
 
-class Trigger(Model):
-    id: str
-
-
-class Once(Trigger):
+class Once(Model):
     type: Literal["once"] = "once"
 
 
-class After(Trigger):
+class After(Model):
     type: Literal["after"] = "after"
 
-    parents: tuple[str, ...] = Field(default=...)
+    after: tuple[str, ...] = Field(default=...)
 
 
-class Restart(Trigger):
+class Restart(Model):
     type: Literal["restart"] = "restart"
 
     delay: float = Field(
@@ -55,14 +49,15 @@ class Restart(Trigger):
     )
 
 
-class Watch(Trigger):
+class Watch(Model):
     type: Literal["watch"] = "watch"
 
-    paths: tuple[str, ...] = Field(default=...)
+    paths: tuple[str, ...]
 
 
 AnyTrigger = Union[
     Once,
+    After,
     Restart,
     Watch,
 ]
@@ -70,7 +65,8 @@ AnyTrigger = Union[
 
 class TargetRef(Model):
     id: str
-    args: dict[str, str]
+
+    args: Annotated[dict[str, str], Field(default_factory=dict)]
 
 
 class TriggerRef(Model):
@@ -79,8 +75,11 @@ class TriggerRef(Model):
 
 class UnresolvedFlowNode(Model):
     id: str
+
     target: Target | TargetRef
     trigger: AnyTrigger | TriggerRef = Once()
+
+    color: Annotated[str, Field(default_factory=random_color)]
 
 
 class UnresolvedFlow(Model):
@@ -88,9 +87,9 @@ class UnresolvedFlow(Model):
 
 
 class Config(Model):
-    targets: tuple[Target, ...]
-    triggers: tuple[AnyTrigger, ...]
-    flows: dict[str, UnresolvedFlow]
+    targets: Annotated[dict[str, Target], Field(default_factory=dict)]
+    triggers: Annotated[dict[str, AnyTrigger], Field(default_factory=dict)]
+    flows: Annotated[dict[str, UnresolvedFlow], Field(default_factory=dict)]
 
     @classmethod
     def from_file(cls, file: Path) -> Config:

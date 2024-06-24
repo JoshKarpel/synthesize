@@ -1,32 +1,33 @@
 flows:
-  nodes:
-    - id: 1
-      target:
-        id: sleep-and-echo
-    - id: 2
-      target:
-        id: sleep-and-echo
-    - id: 3
-      target:
-        id: sleep-and-echo
-    - id: 4
-      target:
-        id: sleep-and-echo
-      trigger:
-        after: ["1", "2"]
-    - id: 5
-      target:
-        id: sleep-and-echo
-      trigger:
-        after: ["3"]
-    - id: 6
-      target:
-        id: sleep-and-echo
-      trigger:
-        after: ["4", "5"]
+  dag:
+    nodes:
+      - id: 1
+        target:
+          id: sleep-and-echo
+      - id: 2
+        target:
+          id: sleep-and-echo
+      - id: 3
+        target:
+          id: sleep-and-echo
+      - id: 4
+        target:
+          id: sleep-and-echo
+        trigger:
+          after: ["1", "2"]
+      - id: 5
+        target:
+          id: sleep-and-echo
+        trigger:
+          after: ["3"]
+      - id: 6
+        target:
+          id: sleep-and-echo
+        trigger:
+          after: ["4", "5"]
 
 targets:
   sleep-and-echo:
     commands: |
       sleep 2
-      echo {{ node.id }}
+      echo "Hi!"
