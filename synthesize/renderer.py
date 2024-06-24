@@ -15,9 +15,8 @@ from typing_extensions import assert_never
 from watchfiles import Change
 
 from synthesize.messages import (
-    CommandLifecycleEvent,
-    CommandMessage,
     ExecutionCompleted,
+    ExecutionOutput,
     ExecutionStarted,
     Message,
     WatchPathChanged,
@@ -53,16 +52,10 @@ class Renderer:
 
     def handle_message(self, message: Message) -> None:
         match message:
-            case CommandMessage() as msg:
+            case ExecutionOutput() as msg:
                 self.handle_command_message(msg)
 
-            case ExecutionStarted() as msg:
-                self.handle_lifecycle_message(msg)
-
-            case ExecutionCompleted() as msg:
-                self.handle_lifecycle_message(msg)
-
-            case WatchPathChanged() as msg:
+            case ExecutionStarted() | ExecutionCompleted() | WatchPathChanged() as msg:
                 self.handle_lifecycle_message(msg)
 
         self.update(message)
@@ -92,13 +85,13 @@ class Renderer:
         return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)
 
     def render_prefix(
-        self, message: CommandMessage | CommandLifecycleEvent | WatchPathChanged
+        self, message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged
     ) -> str:
         return prefix_format.format_map(
             {"id": message.node.id, "timestamp": message.timestamp}
         ).ljust(self.prefix_width)
 
-    def handle_command_message(self, message: CommandMessage) -> None:
+    def handle_command_message(self, message: ExecutionOutput) -> None:
         prefix = Text(
             self.render_prefix(message),
             style=Style(color=message.node.color),

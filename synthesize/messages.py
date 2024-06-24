@@ -11,20 +11,18 @@ class Message(Model):
     timestamp: datetime = Field(default_factory=datetime.now)
 
 
-class CommandLifecycleEvent(Message):
+class ExecutionStarted(Message):
     node: FlowNode
     pid: int
 
 
-class ExecutionStarted(CommandLifecycleEvent):
-    pass
-
-
-class ExecutionCompleted(CommandLifecycleEvent):
+class ExecutionCompleted(Message):
+    node: FlowNode
+    pid: int
     exit_code: int
 
 
-class CommandMessage(Message):
+class ExecutionOutput(Message):
     node: FlowNode
     text: str
 

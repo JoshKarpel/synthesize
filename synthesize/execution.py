@@ -13,7 +13,7 @@ from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
 
 from synthesize.config import FlowNode
-from synthesize.messages import CommandMessage, ExecutionCompleted, ExecutionStarted, Message
+from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 
 
 @lru_cache(maxsize=2**10)
@@ -142,7 +142,7 @@ async def read_output(node: FlowNode, process: Process, events: Queue[Message]) 
             break
 
         await events.put(
-            CommandMessage(
+            ExecutionOutput(
                 node=node,
                 text=line.decode("utf-8").rstrip(),
             )
