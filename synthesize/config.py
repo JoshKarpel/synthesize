@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import shlex
+import shutil
 from colorsys import hsv_to_rgb
+from functools import cached_property
 from pathlib import Path
 from random import random
+from stat import S_IEXEC
 from textwrap import dedent
 from typing import Annotated, Literal, Union
 
@@ -11,6 +15,7 @@ from pydantic import Field, field_validator
 from rich.color import Color
 
 from synthesize.model import Model
+from synthesize.utils import md5
 
 
 def random_color() -> str:
@@ -76,6 +81,32 @@ class FlowNode(Model):
     trigger: AnyTrigger
 
     color: str
+
+    @cached_property
+    def file_name(self) -> str:
+        return f"{self.id}-{md5(self.model_dump_json().encode())}"
+
+    def file_content(self) -> str:
+        exe, *args = shlex.split(self.target.executable)
+        which_exe = shutil.which(exe)
+        if which_exe is None:
+            raise Exception(f"Failed to find absolute path to executable for {exe}")
+        return "\n".join(
+            (
+                f"#!{shlex.join((which_exe, *args))}",
+                "",
+                self.target.commands,
+            )
+        )
+
+    def ensure_file_exists(self, tmp_dir: Path) -> Path:
+        path = tmp_dir / self.file_name
+
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.file_content())
+        path.chmod(path.stat().st_mode | S_IEXEC)
+
+        return path
 
 
 class TargetRef(Model):
