@@ -35,6 +35,7 @@ class Orchestrator:
         self.inbox: Queue[Message] = Queue()
 
         self.executions: dict[str, Execution] = {}
+        self.waiters: dict[str, Task[Execution]] = {}
         self.watchers: dict[str, Task[None]] = {}
         self.heartbeat: Task[None] | None = None
 
@@ -128,6 +129,7 @@ class Orchestrator:
                     events=self.inbox,
                 )
                 self.executions[ready_node.id] = e
+                self.waiters[ready_node.id] = create_task(e.wait())
 
             # When restarting after first execution, delay
             if isinstance(ready_node.trigger, Restart) and ready_node.id in self.executions:
