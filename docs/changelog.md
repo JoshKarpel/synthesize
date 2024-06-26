@@ -7,7 +7,13 @@
 ### Added
 
 - [#3](https://github.com/JoshKarpel/synthesize/pull/3) Added PyPI classifiers and other metadata.
-- [#4](https://github.com/JoshKarpel/synthesize/pull/4) Switch to Parsy (from Lark) for parsing `synthfile`s and hit 100% coverage of the underlying format.
+
+### Changed
+
+- [#30](https://github.com/JoshKarpel/synthesize/pull/30)
+  Reorganized configuration to separate targets,
+  triggers (formerly "lifecycles"),
+  and flows (graphs of targets and triggers)."
 
 ## `0.0.2`
 

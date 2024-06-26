@@ -1,34 +1,33 @@
+flows:
+  dag:
+    nodes:
+      - id: 1
+        target:
+          id: sleep-and-echo
+      - id: 2
+        target:
+          id: sleep-and-echo
+      - id: 3
+        target:
+          id: sleep-and-echo
+      - id: 4
+        target:
+          id: sleep-and-echo
+        trigger:
+          after: ["1", "2"]
+      - id: 5
+        target:
+          id: sleep-and-echo
+        trigger:
+          after: ["3"]
+      - id: 6
+        target:
+          id: sleep-and-echo
+        trigger:
+          after: ["4", "5"]
+
 targets:
-  - id: 1
+  sleep-and-echo:
     commands: |
       sleep 2
-      echo 1
-  - id: 2
-    commands: |
-      sleep 2
-      echo 2
-  - id: 3
-    commands: |
-      sleep 2
-      echo 3
-  - id: 4
-    commands: |
-      sleep 2
-      echo 4
-    after:
-      - 1
-      - 2
-  - id: 5
-    commands: |
-      sleep 2
-      echo 5
-    after:
-      - 2
-      - 3
-  - id: 6
-    commands: |
-      sleep 2
-      echo 6
-    after:
-      - 4
-      - 5
+      echo "Hi!"
