@@ -5,7 +5,6 @@ import shutil
 from colorsys import hsv_to_rgb
 from pathlib import Path
 from random import random
-from stat import S_IEXEC
 from textwrap import dedent
 from typing import Annotated, Literal, Union
 
@@ -16,7 +15,7 @@ from pydantic import Field, field_validator
 from rich.color import Color
 
 from synthesize.model import Model
-from synthesize.utils import FrozenDict, md5
+from synthesize.utils import FrozenDict
 
 Args = Annotated[
     FrozenDict[
@@ -133,23 +132,6 @@ class FlowNode(Model):
     trigger: AnyTrigger
 
     color: str
-
-    def write_script(self, tmp_dir: Path, args: Args) -> Path:
-        path = tmp_dir / f"{self.id}-{md5(self.model_dump_json().encode())}"
-
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(
-            self.target.render(
-                args=args
-                | self.args
-                | {
-                    "id": self.id,
-                }
-            )
-        )
-        path.chmod(path.stat().st_mode | S_IEXEC)
-
-        return path
 
 
 class UnresolvedFlowNode(Model):

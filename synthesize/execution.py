@@ -6,11 +6,31 @@ from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_exec
 from dataclasses import dataclass, field
 from pathlib import Path
 from signal import SIGKILL, SIGTERM
+from stat import S_IEXEC
 
 from frozendict import frozendict
 
 from synthesize.config import Args, Envs, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
+from synthesize.utils import md5
+
+
+def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
+    path = tmp_dir / f"{node.id}-{md5(node.model_dump_json().encode())}"
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        node.target.render(
+            args=args
+            | node.args
+            | {
+                "id": node.id,
+            }
+        )
+    )
+    path.chmod(path.stat().st_mode | S_IEXEC)
+
+    return path
 
 
 @dataclass(frozen=True)
@@ -30,11 +50,11 @@ class Execution:
         node: FlowNode,
         args: Args,
         envs: Envs,
-        events: Queue[Message],
         tmp_dir: Path,
-        width: int = 80,
+        width: int,
+        events: Queue[Message],
     ) -> Execution:
-        path = node.write_script(tmp_dir=tmp_dir, args=args)
+        path = write_script(node=node, args=args, tmp_dir=tmp_dir)
 
         process = await create_subprocess_exec(
             program=path,
