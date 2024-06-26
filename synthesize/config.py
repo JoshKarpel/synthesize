@@ -10,12 +10,44 @@ from stat import S_IEXEC
 from textwrap import dedent
 from typing import Annotated, Literal, Union
 
+from frozendict import frozendict
 from identify.identify import tags_from_path
+from jinja2 import Environment
 from pydantic import Field, field_validator
 from rich.color import Color
 
 from synthesize.model import Model
-from synthesize.utils import md5
+from synthesize.utils import FrozenDict, md5
+
+ArgValue = int | float | str | bool | None
+
+Args = Annotated[
+    FrozenDict[
+        Annotated[
+            str,
+            Field(
+                # https://jinja.palletsprojects.com/en/3.1.x/api/#notes-on-identifiers
+                pattern=r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*",
+                min_length=1,
+            ),
+        ],
+        ArgValue,
+    ],
+    Field(default_factory=frozendict),
+]
+Envs = Annotated[
+    FrozenDict[
+        Annotated[
+            str,
+            Field(
+                pattern=r"[A-Z_]*",
+                min_length=1,
+            ),
+        ],
+        str,
+    ],
+    Field(default_factory=frozendict),
+]
 
 
 def random_color() -> str:
@@ -27,6 +59,9 @@ def random_color() -> str:
     return triplet.hex
 
 
+template_environment = Environment()
+
+
 class Target(Model):
     commands: str = Field(default="")
     executable: str = Field(default="sh -u")
@@ -36,6 +71,24 @@ class Target(Model):
     def dedent_commands(cls, commands: str) -> str:
         return dedent(commands).strip()
 
+    def render(self, args: Args) -> str:
+        exe, *exe_args = shlex.split(self.executable)
+        which_exe = shutil.which(exe)
+        if which_exe is None:
+            raise Exception(f"Failed to find absolute path to executable for {exe}")
+
+        template = template_environment.from_string(
+            "\n".join(
+                (
+                    f"#!{shlex.join((which_exe, *exe_args))}",
+                    "",
+                    self.commands,
+                )
+            )
+        )
+
+        return template.render(args)
+
 
 class Once(Model):
     type: Literal["once"] = "once"
@@ -44,7 +97,7 @@ class Once(Model):
 class After(Model):
     type: Literal["after"] = "after"
 
-    after: frozenset[str] = Field(default=...)
+    after: Annotated[frozenset[str], Field(min_length=1)]
 
 
 class Restart(Model):
@@ -78,6 +131,9 @@ class FlowNode(Model):
     id: str
 
     target: Target
+    args: Args
+    envs: Envs
+
     trigger: AnyTrigger
 
     color: str
@@ -86,24 +142,18 @@ class FlowNode(Model):
     def file_name(self) -> str:
         return f"{self.id}-{md5(self.model_dump_json().encode())}"
 
-    def file_content(self) -> str:
-        exe, *args = shlex.split(self.target.executable)
-        which_exe = shutil.which(exe)
-        if which_exe is None:
-            raise Exception(f"Failed to find absolute path to executable for {exe}")
-        return "\n".join(
-            (
-                f"#!{shlex.join((which_exe, *args))}",
-                "",
-                self.target.commands,
-            )
-        )
-
-    def ensure_file_exists(self, tmp_dir: Path) -> Path:
+    def write_script(self, tmp_dir: Path) -> Path:
         path = tmp_dir / self.file_name
 
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(self.file_content())
+        path.write_text(
+            self.target.render(
+                args=self.args
+                | {
+                    "id": self.id,
+                }
+            )
+        )
         path.chmod(path.stat().st_mode | S_IEXEC)
 
         return path
@@ -121,6 +171,9 @@ class UnresolvedFlowNode(Model):
     id: str
 
     target: Target | TargetRef
+    args: Args
+    envs: Envs
+
     trigger: AnyTrigger | TriggerRef = Once()
 
     color: Annotated[str, Field(default_factory=random_color)]
@@ -133,6 +186,8 @@ class UnresolvedFlowNode(Model):
         return FlowNode(
             id=self.id,
             target=targets[self.target.id] if isinstance(self.target, TargetRef) else self.target,
+            args=self.args,
+            envs=self.envs,
             trigger=(
                 triggers[self.trigger.id] if isinstance(self.trigger, TriggerRef) else self.trigger
             ),

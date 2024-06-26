@@ -30,4 +30,4 @@ targets:
   sleep-and-echo:
     commands: |
       sleep 2
-      echo "Hi!"
+      echo "Hi from {{ id }}!"

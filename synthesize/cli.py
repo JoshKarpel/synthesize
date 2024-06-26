@@ -38,7 +38,7 @@ def run(
         help="The path to the configuration file to execute.",
     ),
     dry: bool = Option(
-        False,
+        default=False,
         help="If enabled, do not run actually run the flow.",
     ),
 ) -> None:
@@ -66,11 +66,25 @@ def run(
             )
         )
 
-        return
-
     resolved = parsed_config.resolve()
 
-    controller = Orchestrator(flow=resolved[flow], console=console)
+    try:
+        selected_flow = resolved[flow]
+    except KeyError:
+        sep = "\n  "
+        available_flows = sep + sep.join(resolved.keys())
+        console.print(
+            Text(
+                f"No flow named '{flow}'. Available flows:{available_flows}",
+                style=Style(color="red"),
+            )
+        )
+        raise Exit(code=1)
+
+    if dry:
+        return
+
+    controller = Orchestrator(flow=selected_flow, console=console)
 
     try:
         asyncio.run(controller.run())

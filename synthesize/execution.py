@@ -30,13 +30,21 @@ class Execution:
         tmp_dir: Path,
         width: int = 80,
     ) -> Execution:
-        path = node.ensure_file_exists(tmp_dir=tmp_dir)
+        path = node.write_script(tmp_dir=tmp_dir)
 
         process = await create_subprocess_exec(
             program=path,
             stdout=PIPE,
             stderr=STDOUT,
-            env={**os.environ, "FORCE_COLOR": "1", "COLUMNS": str(width)},
+            env=os.environ
+            | node.envs
+            | {
+                "FORCE_COLOR": "1",
+                "COLUMNS": str(width),
+            }
+            | {
+                "SYNTH_NODE_ID": node.id,
+            },
             preexec_fn=os.setsid,
         )
 
