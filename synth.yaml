@@ -1,18 +1,13 @@
 flows:
   default:
     tests:
-      target:
-        id: tests
-      trigger:
-        id: code-changes
+      target: tests
+      trigger: code-changes
     types:
-      target:
-        id: types
-      trigger:
-        id: code-changes
+      target: types
+      trigger: code-changes
     docs:
-      target:
-        id: docs
+      target: docs
       trigger:
         type: restart
 

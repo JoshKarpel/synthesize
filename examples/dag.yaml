@@ -1,27 +1,21 @@
 flows:
   default:
     1:
-      target:
-        id: sleep-and-echo
+      target: sleep-and-echo
     2:
-      target:
-        id: sleep-and-echo
+      target: sleep-and-echo
     3:
-      target:
-        id: sleep-and-echo
+      target: sleep-and-echo
     4:
-      target:
-        id: sleep-and-echo
+      target: sleep-and-echo
       trigger:
         after: ["1", "2"]
     5:
-      target:
-        id: sleep-and-echo
+      target: sleep-and-echo
       trigger:
         after: ["3"]
     6:
-      target:
-        id: sleep-and-echo
+      target: sleep-and-echo
       trigger:
         after: ["4", "5"]
 

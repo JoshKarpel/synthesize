@@ -153,20 +153,12 @@ class FlowNode(Model):
         return path
 
 
-class TargetRef(Model):
-    id: str
-
-
-class TriggerRef(Model):
-    id: str
-
-
 class UnresolvedFlowNode(Model):
-    target: Target | TargetRef
+    target: Target | str
     args: Args
     envs: Envs
 
-    trigger: AnyTrigger | TriggerRef = Once()
+    trigger: AnyTrigger | str = Once()
 
     color: Annotated[str, Field(default_factory=random_color)]
 
@@ -178,12 +170,10 @@ class UnresolvedFlowNode(Model):
     ) -> FlowNode:
         return FlowNode(
             id=id,
-            target=targets[self.target.id] if isinstance(self.target, TargetRef) else self.target,
+            target=targets[self.target] if isinstance(self.target, str) else self.target,
             args=self.args,
             envs=self.envs,
-            trigger=(
-                triggers[self.trigger.id] if isinstance(self.trigger, TriggerRef) else self.trigger
-            ),
+            trigger=(triggers[self.trigger] if isinstance(self.trigger, str) else self.trigger),
             color=self.color,
         )
 
