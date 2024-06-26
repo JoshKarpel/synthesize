@@ -9,7 +9,7 @@ from signal import SIGKILL, SIGTERM
 
 from frozendict import frozendict
 
-from synthesize.config import Flow, FlowNode
+from synthesize.config import Args, Envs, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 
 
@@ -28,19 +28,20 @@ class Execution:
     async def start(
         cls,
         node: FlowNode,
-        flow: Flow,
+        args: Args,
+        envs: Envs,
         events: Queue[Message],
         tmp_dir: Path,
         width: int = 80,
     ) -> Execution:
-        path = node.write_script(tmp_dir=tmp_dir, flow_args=flow.args)
+        path = node.write_script(tmp_dir=tmp_dir, args=args)
 
         process = await create_subprocess_exec(
             program=path,
             stdout=PIPE,
             stderr=STDOUT,
             env=frozendict(os.environ)
-            | flow.envs
+            | envs
             | node.envs
             | {
                 "FORCE_COLOR": "1",

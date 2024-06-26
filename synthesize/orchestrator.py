@@ -122,7 +122,8 @@ class Orchestrator:
             async def start() -> None:
                 e = await Execution.start(
                     node=ready_node,
-                    flow=self.flow,
+                    args=self.flow.args,
+                    envs=self.flow.envs,
                     events=self.inbox,
                     width=self.console.width - self.renderer.prefix_width,
                     tmp_dir=tmp_dir,

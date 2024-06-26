@@ -134,13 +134,13 @@ class FlowNode(Model):
 
     color: str
 
-    def write_script(self, tmp_dir: Path, flow_args: Args) -> Path:
+    def write_script(self, tmp_dir: Path, args: Args) -> Path:
         path = tmp_dir / f"{self.id}-{md5(self.model_dump_json().encode())}"
 
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             self.target.render(
-                args=flow_args
+                args=args
                 | self.args
                 | {
                     "id": self.id,
