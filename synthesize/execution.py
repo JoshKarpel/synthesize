@@ -42,8 +42,6 @@ class Execution:
     process: Process
     reader: Task[None]
 
-    width: int
-
     @classmethod
     async def start(
         cls,
@@ -89,7 +87,6 @@ class Execution:
             events=events,
             process=process,
             reader=reader,
-            width=width,
         )
 
     @property
