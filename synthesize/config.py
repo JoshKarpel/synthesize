@@ -216,7 +216,7 @@ class Config(Model):
         tags = tags_from_path(str(file))
 
         if "yaml" in tags:
-            return cls.parse_yaml(file.read_text())
+            return cls.model_validate_yaml(file.read_text())
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 

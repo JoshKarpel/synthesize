@@ -17,5 +17,5 @@ class Model(BaseModel):
     )
 
     @classmethod
-    def parse_yaml(cls: Type[C], y: str) -> C:
+    def model_validate_yaml(cls: Type[C], y: str) -> C:
         return cls.model_validate(yaml.safe_load(y))
