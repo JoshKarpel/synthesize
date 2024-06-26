@@ -3,7 +3,6 @@ from __future__ import annotations
 import shlex
 import shutil
 from colorsys import hsv_to_rgb
-from functools import cached_property
 from pathlib import Path
 from random import random
 from stat import S_IEXEC
@@ -137,12 +136,8 @@ class FlowNode(Model):
 
     color: str
 
-    @cached_property
-    def file_name(self) -> str:
-        return f"{self.id}-{md5(self.model_dump_json().encode())}"
-
     def write_script(self, tmp_dir: Path) -> Path:
-        path = tmp_dir / self.file_name
+        path = tmp_dir / f"{self.id}-{md5(self.model_dump_json().encode())}"
 
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
@@ -167,8 +162,6 @@ class TriggerRef(Model):
 
 
 class UnresolvedFlowNode(Model):
-    id: str
-
     target: Target | TargetRef
     args: Args
     envs: Envs
@@ -179,11 +172,12 @@ class UnresolvedFlowNode(Model):
 
     def resolve(
         self,
+        id: str,
         targets: dict[str, Target],
         triggers: dict[str, AnyTrigger],
     ) -> FlowNode:
         return FlowNode(
-            id=self.id,
+            id=id,
             target=targets[self.target.id] if isinstance(self.target, TargetRef) else self.target,
             args=self.args,
             envs=self.envs,
@@ -194,15 +188,8 @@ class UnresolvedFlowNode(Model):
         )
 
 
-class Flow(Model):
-    nodes: tuple[FlowNode, ...]
-
-
-class UnresolvedFlow(Model):
-    nodes: tuple[UnresolvedFlowNode, ...]
-
-    def resolve(self, targets: dict[str, Target], triggers: dict[str, AnyTrigger]) -> Flow:
-        return Flow(nodes=tuple(node.resolve(targets, triggers) for node in self.nodes))
+UnresolvedFlow = dict[str, UnresolvedFlowNode]
+Flow = dict[str, FlowNode]
 
 
 class Config(Model):
@@ -220,4 +207,10 @@ class Config(Model):
             raise NotImplementedError("Currently, only YAML files are supported.")
 
     def resolve(self) -> dict[str, Flow]:
-        return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}
+        return {
+            flow_id: {
+                node_id: node.resolve(node_id, self.targets, self.triggers)
+                for node_id, node in flow.items()
+            }
+            for flow_id, flow in self.flows.items()
+        }

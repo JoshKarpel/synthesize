@@ -136,7 +136,7 @@ class Orchestrator:
                 await start()
 
     async def start_watchers(self) -> None:
-        for node in self.flow.nodes:
+        for node in self.flow.values():
             if isinstance(node.trigger, Watch):
                 self.watchers[node.id] = create_task(
                     watch(

@@ -1,21 +1,20 @@
 flows:
   default:
-    nodes:
-      - id: tests
-        target:
-          id: tests
-        trigger:
-          id: code-changes
-      - id: types
-        target:
-          id: types
-        trigger:
-          id: code-changes
-      - id: docs
-        target:
-          id: docs
-        trigger:
-          type: restart
+    tests:
+      target:
+        id: tests
+      trigger:
+        id: code-changes
+    types:
+      target:
+        id: types
+      trigger:
+        id: code-changes
+    docs:
+      target:
+        id: docs
+      trigger:
+        type: restart
 
 targets:
   tests:
