@@ -40,7 +40,6 @@ Envs = Annotated[
         Annotated[
             str,
             Field(
-                pattern=r"[A-Z_]*",
                 min_length=1,
             ),
         ],
