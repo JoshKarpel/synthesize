@@ -1,23 +1,24 @@
 flows:
   default:
-    1:
-      target: sleep-and-echo
-    2:
-      target: sleep-and-echo
-    3:
-      target: sleep-and-echo
-    4:
-      target: sleep-and-echo
-      trigger:
-        after: ["1", "2"]
-    5:
-      target: sleep-and-echo
-      trigger:
-        after: ["3"]
-    6:
-      target: sleep-and-echo
-      trigger:
-        after: ["4", "5"]
+    nodes:
+      1:
+        target: sleep-and-echo
+      2:
+        target: sleep-and-echo
+      3:
+        target: sleep-and-echo
+      4:
+        target: sleep-and-echo
+        trigger:
+          after: ["1", "2"]
+      5:
+        target: sleep-and-echo
+        trigger:
+          after: ["3"]
+      6:
+        target: sleep-and-echo
+        trigger:
+          after: ["4", "5"]
 
 targets:
   sleep-and-echo:

@@ -25,7 +25,7 @@ class FlowState:
     def from_flow(cls, flow: Flow) -> FlowState:
         graph = DiGraph()
 
-        for id, node in flow.items():
+        for id, node in flow.nodes.items():
             graph.add_node(id)
             if isinstance(node.trigger, After):
                 for predecessor_id in node.trigger.after:
@@ -39,14 +39,14 @@ class FlowState:
 
     def running_nodes(self) -> set[FlowNode]:
         return {
-            self.flow[id]
+            self.flow.nodes[id]
             for id, status in self.statuses.items()
             if status is FlowNodeStatus.Running
         }
 
     def ready_nodes(self) -> set[FlowNode]:
         return {
-            self.flow[id]
+            self.flow.nodes[id]
             for id in self.graph.nodes
             if self.statuses[id] is FlowNodeStatus.Pending
             and all(self.statuses[a] is FlowNodeStatus.Succeeded for a in ancestors(self.graph, id))
@@ -75,7 +75,7 @@ class FlowState:
         return len(self.graph)
 
     def nodes(self) -> set[FlowNode]:
-        return set(self.flow.values())
+        return set(self.flow.nodes.values())
 
 
 def _ancestors(graph: DiGraph, nodes: set[str]) -> set[str]:

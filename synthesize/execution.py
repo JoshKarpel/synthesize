@@ -7,7 +7,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from signal import SIGKILL, SIGTERM
 
-from synthesize.config import FlowNode
+from frozendict import frozendict
+
+from synthesize.config import Flow, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 
 
@@ -26,17 +28,19 @@ class Execution:
     async def start(
         cls,
         node: FlowNode,
+        flow: Flow,
         events: Queue[Message],
         tmp_dir: Path,
         width: int = 80,
     ) -> Execution:
-        path = node.write_script(tmp_dir=tmp_dir)
+        path = node.write_script(tmp_dir=tmp_dir, flow_args=flow.args)
 
         process = await create_subprocess_exec(
             program=path,
             stdout=PIPE,
             stderr=STDOUT,
-            env=os.environ
+            env=frozendict(os.environ)
+            | flow.envs
             | node.envs
             | {
                 "FORCE_COLOR": "1",

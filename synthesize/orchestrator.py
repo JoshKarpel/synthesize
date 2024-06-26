@@ -122,6 +122,7 @@ class Orchestrator:
             async def start() -> None:
                 e = await Execution.start(
                     node=ready_node,
+                    flow=self.flow,
                     events=self.inbox,
                     width=self.console.width - self.renderer.prefix_width,
                     tmp_dir=tmp_dir,
@@ -136,7 +137,7 @@ class Orchestrator:
                 await start()
 
     async def start_watchers(self) -> None:
-        for node in self.flow.values():
+        for node in self.flow.nodes.values():
             if isinstance(node.trigger, Watch):
                 self.watchers[node.id] = create_task(
                     watch(

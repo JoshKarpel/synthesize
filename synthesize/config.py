@@ -136,13 +136,14 @@ class FlowNode(Model):
 
     color: str
 
-    def write_script(self, tmp_dir: Path) -> Path:
+    def write_script(self, tmp_dir: Path, flow_args: Args) -> Path:
         path = tmp_dir / f"{self.id}-{md5(self.model_dump_json().encode())}"
 
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             self.target.render(
-                args=self.args
+                args=flow_args
+                | self.args
                 | {
                     "id": self.id,
                 }
@@ -178,8 +179,30 @@ class UnresolvedFlowNode(Model):
         )
 
 
-UnresolvedFlow = dict[str, UnresolvedFlowNode]
-Flow = dict[str, FlowNode]
+class Flow(Model):
+    nodes: dict[str, FlowNode]
+    args: Args = Field(default_factory=frozendict)
+    envs: Envs = Field(default_factory=frozendict)
+
+
+class UnresolvedFlow(Model):
+    nodes: dict[str, UnresolvedFlowNode]
+    args: Args = Field(default_factory=frozendict)
+    envs: Envs = Field(default_factory=frozendict)
+
+    def resolve(
+        self,
+        targets: dict[str, Target],
+        triggers: dict[str, AnyTrigger],
+    ) -> Flow:
+        return Flow(
+            nodes={
+                node_id: node.resolve(node_id, targets, triggers)
+                for node_id, node in self.nodes.items()
+            },
+            args=self.args,
+            envs=self.envs,
+        )
 
 
 class Config(Model):
@@ -198,9 +221,6 @@ class Config(Model):
 
     def resolve(self) -> dict[str, Flow]:
         return {
-            flow_id: {
-                node_id: node.resolve(node_id, self.targets, self.triggers)
-                for node_id, node in flow.items()
-            }
+            flow_id: flow.resolve(self.targets, self.triggers)
             for flow_id, flow in self.flows.items()
         }
