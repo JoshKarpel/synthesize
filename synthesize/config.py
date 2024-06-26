@@ -18,8 +18,6 @@ from rich.color import Color
 from synthesize.model import Model
 from synthesize.utils import FrozenDict, md5
 
-ArgValue = int | float | str | bool | None
-
 Args = Annotated[
     FrozenDict[
         Annotated[
@@ -30,7 +28,7 @@ Args = Annotated[
                 min_length=1,
             ),
         ],
-        ArgValue,
+        object,
     ],
     Field(default_factory=frozendict),
 ]
