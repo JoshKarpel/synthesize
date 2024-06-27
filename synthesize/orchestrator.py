@@ -43,7 +43,7 @@ class Orchestrator:
         if not self.state.nodes():
             return
 
-        with TemporaryDirectory(prefix="snyth-") as tmpdir, self.renderer:
+        with TemporaryDirectory(prefix="synth-") as tmpdir, self.renderer:
             tmp_dir = Path(tmpdir)
 
             try:
