@@ -15,7 +15,7 @@ flows:
 targets:
   tests:
     commands: |
-      pytest --cov
+      pytest -vv --cov
 
   types:
     commands: |
@@ -32,3 +32,4 @@ triggers:
       - synthesize/
       - tests/
       - examples/
+      - pyproject.toml

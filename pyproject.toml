@@ -91,6 +91,7 @@ warn_redundant_casts = true
 
 ignore_missing_imports = true
 
+plugins = "pydantic.mypy"
 
 [tool.ruff]
 line-length = 120

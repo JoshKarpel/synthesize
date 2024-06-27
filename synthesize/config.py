@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shlex
 import shutil
+from collections.abc import Mapping
 from colorsys import hsv_to_rgb
 from pathlib import Path
 from random import random
@@ -17,31 +18,25 @@ from rich.color import Color
 from synthesize.model import Model
 from synthesize.utils import FrozenDict
 
-Args = Annotated[
-    FrozenDict[
-        Annotated[
-            str,
-            Field(
-                # https://jinja.palletsprojects.com/en/3.1.x/api/#notes-on-identifiers
-                pattern=r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*",
-                min_length=1,
-            ),
-        ],
-        object,
-    ],
-    Field(default_factory=frozendict),
-]
-Envs = Annotated[
-    FrozenDict[
-        Annotated[
-            str,
-            Field(
-                min_length=1,
-            ),
-        ],
+Args = FrozenDict[
+    Annotated[
         str,
+        Field(
+            # https://jinja.palletsprojects.com/en/3.1.x/api/#notes-on-identifiers
+            pattern=r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*",
+            min_length=1,
+        ),
     ],
-    Field(default_factory=frozendict),
+    object,
+]
+Envs = FrozenDict[
+    Annotated[
+        str,
+        Field(
+            min_length=1,
+        ),
+    ],
+    str,
 ]
 
 
@@ -58,8 +53,8 @@ template_environment = Environment()
 
 
 class Target(Model):
-    commands: str = Field(default="")
-    executable: str = Field(default="sh -u")
+    commands: str = ""
+    executable: str = "sh -u"
 
     @field_validator("commands")
     @classmethod
@@ -101,11 +96,10 @@ class Restart(Model):
     delay: Annotated[
         float,
         Field(
-            default=1,
             description="The delay before restarting the command after it exits.",
             ge=0,
         ),
-    ]
+    ] = 1
 
 
 class Watch(Model):
@@ -126,8 +120,8 @@ class FlowNode(Model):
     id: str
 
     target: Target
-    args: Args
-    envs: Envs
+    args: Args = frozendict()
+    envs: Envs = frozendict()
 
     trigger: AnyTrigger
 
@@ -136,8 +130,8 @@ class FlowNode(Model):
 
 class UnresolvedFlowNode(Model):
     target: Target | str
-    args: Args
-    envs: Envs
+    args: Args = frozendict()
+    envs: Envs = frozendict()
 
     trigger: AnyTrigger | str = Once()
 
@@ -146,8 +140,8 @@ class UnresolvedFlowNode(Model):
     def resolve(
         self,
         id: str,
-        targets: dict[str, Target],
-        triggers: dict[str, AnyTrigger],
+        targets: Mapping[str, Target],
+        triggers: Mapping[str, AnyTrigger],
     ) -> FlowNode:
         return FlowNode(
             id=id,
@@ -161,19 +155,19 @@ class UnresolvedFlowNode(Model):
 
 class Flow(Model):
     nodes: dict[str, FlowNode]
-    args: Args = Field(default_factory=frozendict)
-    envs: Envs = Field(default_factory=frozendict)
+    args: Args = frozendict()
+    envs: Envs = frozendict()
 
 
 class UnresolvedFlow(Model):
     nodes: dict[str, UnresolvedFlowNode]
-    args: Args = Field(default_factory=frozendict)
-    envs: Envs = Field(default_factory=frozendict)
+    args: Args = frozendict()
+    envs: Envs = frozendict()
 
     def resolve(
         self,
-        targets: dict[str, Target],
-        triggers: dict[str, AnyTrigger],
+        targets: Mapping[str, Target],
+        triggers: Mapping[str, AnyTrigger],
     ) -> Flow:
         return Flow(
             nodes={
@@ -186,9 +180,9 @@ class UnresolvedFlow(Model):
 
 
 class Config(Model):
-    targets: Annotated[dict[str, Target], Field(default_factory=dict)]
-    triggers: Annotated[dict[str, AnyTrigger], Field(default_factory=dict)]
-    flows: Annotated[dict[str, UnresolvedFlow], Field(default_factory=dict)]
+    flows: FrozenDict[str, UnresolvedFlow] = frozendict()
+    targets: FrozenDict[str, Target] = frozendict()
+    triggers: FrozenDict[str, AnyTrigger] = frozendict()
 
     @classmethod
     def from_file(cls, file: Path) -> Config:
@@ -199,7 +193,7 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self) -> dict[str, Flow]:
+    def resolve(self) -> Mapping[str, Flow]:
         return {
             flow_id: flow.resolve(self.targets, self.triggers)
             for flow_id, flow in self.flows.items()
