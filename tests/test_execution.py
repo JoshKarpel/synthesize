@@ -207,6 +207,16 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             FlowNode(
                 id="foo",
                 target=Target(commands="echo $FOO"),
+                envs=Envs({"FOO": "bar"}),
+                color=color,
+            ),
+            Envs(),
+            "bar",
+        ),
+        (
+            FlowNode(
+                id="foo",
+                target=Target(commands="echo $FOO"),
                 color=color,
             ),
             Envs({"FOO": "baz"}),
