@@ -40,10 +40,10 @@ class Orchestrator:
         self.heartbeat: Task[None] | None = None
 
     async def run(self) -> None:
-        if not self.state.nodes():
+        if not self.flow.nodes:
             return
 
-        with TemporaryDirectory(prefix="snyth-") as tmpdir, self.renderer:
+        with TemporaryDirectory(prefix="synth-") as tmpdir, self.renderer:
             tmp_dir = Path(tmpdir)
 
             try:
@@ -122,9 +122,11 @@ class Orchestrator:
             async def start() -> None:
                 e = await Execution.start(
                     node=ready_node,
-                    events=self.inbox,
-                    width=self.console.width - self.renderer.prefix_width,
+                    args=self.flow.args,
+                    envs=self.flow.envs,
                     tmp_dir=tmp_dir,
+                    width=self.console.width - self.renderer.prefix_width,
+                    events=self.inbox,
                 )
                 self.executions[ready_node.id] = e
                 self.waiters[ready_node.id] = create_task(e.wait())
@@ -136,7 +138,7 @@ class Orchestrator:
                 await start()
 
     async def start_watchers(self) -> None:
-        for node in self.flow.nodes:
+        for node in self.flow.nodes.values():
             if isinstance(node.trigger, Watch):
                 self.watchers[node.id] = create_task(
                     watch(

@@ -7,6 +7,12 @@
 ### Added
 
 - [#3](https://github.com/JoshKarpel/synthesize/pull/3) Added PyPI classifiers and other metadata.
+- [#33](https://github.com/JoshKarpel/synthesize/pull/33)
+  Allow injecting arguments
+  (via [Jinja2 templates](https://jinja.palletsprojects.com/))
+  and environment variables into target commands.
+  Arguments and environment variables can be specified at either
+  the flow, node, or target level, with the most specific taking precedence.
 
 ### Changed
 

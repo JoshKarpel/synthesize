@@ -1,29 +1,34 @@
 from __future__ import annotations
 
 import os
-import shlex
-import shutil
 from asyncio import Queue, Task, create_task
 from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_exec
 from dataclasses import dataclass, field
-from functools import lru_cache
-from hashlib import md5
 from pathlib import Path
 from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
 
-from synthesize.config import FlowNode
+from synthesize.config import Args, Envs, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
+from synthesize.utils import md5
 
 
-@lru_cache(maxsize=2**10)
-def file_name(node: FlowNode) -> str:
-    h = md5()
-    h.update(node.id.encode())
-    h.update(node.target.executable.encode())
-    h.update(node.target.commands.encode())
+def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
+    path = tmp_dir / f"{node.id}-{md5(node.model_dump_json().encode())}"
 
-    return f"{node.id}-{h.hexdigest()}"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        node.target.render(
+            args=args
+            | node.args
+            | {
+                "id": node.id,
+            }
+        )
+    )
+    path.chmod(path.stat().st_mode | S_IEXEC)
+
+    return path
 
 
 @dataclass(frozen=True)
@@ -35,38 +40,32 @@ class Execution:
     process: Process
     reader: Task[None]
 
-    width: int
-
     @classmethod
     async def start(
         cls,
         node: FlowNode,
-        events: Queue[Message],
+        args: Args,
+        envs: Envs,
         tmp_dir: Path,
-        width: int = 80,
+        width: int,
+        events: Queue[Message],
     ) -> Execution:
-        path = tmp_dir / file_name(node)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        exe, *args = shlex.split(node.target.executable)
-        which_exe = shutil.which(exe)
-        if which_exe is None:
-            raise Exception(f"Failed to find absolute path to executable for {exe}")
-        path.write_text(
-            "\n".join(
-                (
-                    f"#! {shlex.join((which_exe, *args))}",
-                    "",
-                    node.target.commands,
-                )
-            )
-        )
-        path.chmod(path.stat().st_mode | S_IEXEC)
+        path = write_script(node=node, args=args, tmp_dir=tmp_dir)
 
         process = await create_subprocess_exec(
             program=path,
             stdout=PIPE,
             stderr=STDOUT,
-            env={**os.environ, "FORCE_COLOR": "1", "COLUMNS": str(width)},
+            env=os.environ
+            | envs
+            | node.envs
+            | {
+                "FORCE_COLOR": "1",
+                "COLUMNS": str(width),
+            }
+            | {
+                "SYNTH_NODE_ID": node.id,
+            },
             preexec_fn=os.setsid,
         )
 
@@ -86,7 +85,6 @@ class Execution:
             events=events,
             process=process,
             reader=reader,
-            width=width,
         )
 
     @property

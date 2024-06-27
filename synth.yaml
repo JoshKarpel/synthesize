@@ -1,26 +1,21 @@
 flows:
   default:
     nodes:
-      - id: tests
-        target:
-          id: tests
-        trigger:
-          id: code-changes
-      - id: types
-        target:
-          id: types
-        trigger:
-          id: code-changes
-      - id: docs
-        target:
-          id: docs
+      tests:
+        target: tests
+        trigger: code-changes
+      types:
+        target: types
+        trigger: code-changes
+      docs:
+        target: docs
         trigger:
           type: restart
 
 targets:
   tests:
     commands: |
-      pytest --cov
+      pytest -vv --cov
 
   types:
     commands: |
@@ -37,3 +32,4 @@ triggers:
       - synthesize/
       - tests/
       - examples/
+      - pyproject.toml

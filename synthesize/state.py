@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Iterator
 from dataclasses import dataclass
 from enum import Enum
 
@@ -18,68 +19,64 @@ class FlowNodeStatus(Enum):
 @dataclass(frozen=True)
 class FlowState:
     graph: DiGraph
-    id_to_node: dict[str, FlowNode]
-    id_to_status: dict[str, FlowNodeStatus]
+    flow: Flow
+    statuses: dict[str, FlowNodeStatus]
 
     @classmethod
     def from_flow(cls, flow: Flow) -> FlowState:
-        id_to_node = {node.id: node for node in flow.nodes}
-
         graph = DiGraph()
 
-        for id, node in id_to_node.items():
-            graph.add_node(node.id)
+        for id, node in flow.nodes.items():
+            graph.add_node(id)
             if isinstance(node.trigger, After):
                 for predecessor_id in node.trigger.after:
                     graph.add_edge(predecessor_id, id)
 
         return FlowState(
             graph=graph,
-            id_to_node={id: node for id, node in id_to_node.items()},
-            id_to_status={id: FlowNodeStatus.Pending for id in graph.nodes},
+            flow=flow,
+            statuses={id: FlowNodeStatus.Pending for id in graph.nodes},
         )
 
-    def running_nodes(self) -> set[FlowNode]:
-        return {
-            self.id_to_node[id]
-            for id, status in self.id_to_status.items()
+    def running_nodes(self) -> Collection[FlowNode]:
+        return tuple(
+            self.flow.nodes[id]
+            for id, status in self.statuses.items()
             if status is FlowNodeStatus.Running
-        }
+        )
 
-    def ready_nodes(self) -> set[FlowNode]:
-        return {
-            self.id_to_node[id]
+    def ready_nodes(self) -> Collection[FlowNode]:
+        return tuple(
+            self.flow.nodes[id]
             for id in self.graph.nodes
-            if self.id_to_status[id] is FlowNodeStatus.Pending
-            and all(
-                self.id_to_status[a] is FlowNodeStatus.Succeeded for a in ancestors(self.graph, id)
-            )
-        }
+            if self.statuses[id] is FlowNodeStatus.Pending
+            and all(self.statuses[a] is FlowNodeStatus.Succeeded for a in ancestors(self.graph, id))
+        )
 
     def mark_success(self, node: FlowNode) -> None:
-        self.id_to_status[node.id] = FlowNodeStatus.Succeeded
+        self.statuses[node.id] = FlowNodeStatus.Succeeded
 
     def mark_failure(self, node: FlowNode) -> None:
-        self.id_to_status[node.id] = FlowNodeStatus.Failed
+        self.statuses[node.id] = FlowNodeStatus.Failed
 
     def mark_pending(self, node: FlowNode) -> None:
-        self.id_to_status[node.id] = FlowNodeStatus.Pending
+        self.statuses[node.id] = FlowNodeStatus.Pending
 
     def mark_descendants_pending(self, node: FlowNode) -> None:
         for t in _descendants(self.graph, {node.id}):
-            self.id_to_status[t] = FlowNodeStatus.Pending
+            self.statuses[t] = FlowNodeStatus.Pending
 
     def mark_running(self, node: FlowNode) -> None:
-        self.id_to_status[node.id] = FlowNodeStatus.Running
+        self.statuses[node.id] = FlowNodeStatus.Running
 
     def all_done(self) -> bool:
-        return all(status is FlowNodeStatus.Succeeded for status in self.id_to_status.values())
+        return all(status is FlowNodeStatus.Succeeded for status in self.statuses.values())
 
     def num_nodes(self) -> int:
         return len(self.graph)
 
-    def nodes(self) -> set[FlowNode]:
-        return set(self.id_to_node.values())
+    def nodes(self) -> Iterator[FlowNode]:
+        yield from self.flow.nodes.values()
 
 
 def _ancestors(graph: DiGraph, nodes: set[str]) -> set[str]:
