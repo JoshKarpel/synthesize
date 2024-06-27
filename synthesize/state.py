@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Iterator
 from dataclasses import dataclass
 from enum import Enum
 
@@ -37,20 +38,20 @@ class FlowState:
             statuses={id: FlowNodeStatus.Pending for id in graph.nodes},
         )
 
-    def running_nodes(self) -> set[FlowNode]:
-        return {
+    def running_nodes(self) -> Collection[FlowNode]:
+        return tuple(
             self.flow.nodes[id]
             for id, status in self.statuses.items()
             if status is FlowNodeStatus.Running
-        }
+        )
 
-    def ready_nodes(self) -> set[FlowNode]:
-        return {
+    def ready_nodes(self) -> Collection[FlowNode]:
+        return tuple(
             self.flow.nodes[id]
             for id in self.graph.nodes
             if self.statuses[id] is FlowNodeStatus.Pending
             and all(self.statuses[a] is FlowNodeStatus.Succeeded for a in ancestors(self.graph, id))
-        }
+        )
 
     def mark_success(self, node: FlowNode) -> None:
         self.statuses[node.id] = FlowNodeStatus.Succeeded
@@ -74,8 +75,8 @@ class FlowState:
     def num_nodes(self) -> int:
         return len(self.graph)
 
-    def nodes(self) -> set[FlowNode]:
-        return set(self.flow.nodes.values())
+    def nodes(self) -> Iterator[FlowNode]:
+        yield from self.flow.nodes.values()
 
 
 def _ancestors(graph: DiGraph, nodes: set[str]) -> set[str]:

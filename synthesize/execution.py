@@ -8,8 +8,6 @@ from pathlib import Path
 from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
 
-from frozendict import frozendict
-
 from synthesize.config import Args, Envs, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 from synthesize.utils import md5
@@ -58,7 +56,7 @@ class Execution:
             program=path,
             stdout=PIPE,
             stderr=STDOUT,
-            env=frozendict(os.environ)
+            env=os.environ
             | envs
             | node.envs
             | {

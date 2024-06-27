@@ -63,17 +63,17 @@ class Renderer:
     def info(self, event: Message) -> RenderableType:
         table = Table.grid(padding=(1, 1, 0, 0))
 
-        running_targets = self.state.running_nodes()
+        running_nodes = self.state.running_nodes()
 
         running = (
             Text.assemble(
                 "Running ",
                 Text(" ").join(
                     Text(t.id, style=Style(color="black", bgcolor=t.color))
-                    for t in sorted(running_targets, key=lambda t: t.id)
+                    for t in sorted(running_nodes, key=lambda t: t.id)
                 ),
             )
-            if running_targets
+            if running_nodes
             else Text()
         )
 
@@ -82,7 +82,7 @@ class Renderer:
             running,
         )
 
-        return Group(Rule(style=(Style(color="green" if running_targets else "yellow"))), table)
+        return Group(Rule(style=(Style(color="green" if running_nodes else "yellow"))), table)
 
     def render_prefix(
         self, message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged

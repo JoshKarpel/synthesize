@@ -9,16 +9,14 @@ from random import random
 from textwrap import dedent
 from typing import Annotated, Literal, Union
 
-from frozendict import frozendict
 from identify.identify import tags_from_path
 from jinja2 import Environment
 from pydantic import Field, field_validator
 from rich.color import Color
 
 from synthesize.model import Model
-from synthesize.utils import FrozenDict
 
-Args = FrozenDict[
+Args = dict[
     Annotated[
         str,
         Field(
@@ -29,7 +27,7 @@ Args = FrozenDict[
     ],
     object,
 ]
-Envs = FrozenDict[
+Envs = dict[
     Annotated[
         str,
         Field(
@@ -120,8 +118,8 @@ class FlowNode(Model):
     id: str
 
     target: Target
-    args: Args = frozendict()
-    envs: Envs = frozendict()
+    args: Args = {}
+    envs: Envs = {}
 
     trigger: AnyTrigger
 
@@ -130,8 +128,8 @@ class FlowNode(Model):
 
 class UnresolvedFlowNode(Model):
     target: Target | str
-    args: Args = frozendict()
-    envs: Envs = frozendict()
+    args: Args = {}
+    envs: Envs = {}
 
     trigger: AnyTrigger | str = Once()
 
@@ -155,14 +153,14 @@ class UnresolvedFlowNode(Model):
 
 class Flow(Model):
     nodes: dict[str, FlowNode]
-    args: Args = frozendict()
-    envs: Envs = frozendict()
+    args: Args = {}
+    envs: Envs = {}
 
 
 class UnresolvedFlow(Model):
     nodes: dict[str, UnresolvedFlowNode]
-    args: Args = frozendict()
-    envs: Envs = frozendict()
+    args: Args = {}
+    envs: Envs = {}
 
     def resolve(
         self,
@@ -180,9 +178,9 @@ class UnresolvedFlow(Model):
 
 
 class Config(Model):
-    flows: FrozenDict[str, UnresolvedFlow] = frozendict()
-    targets: FrozenDict[str, Target] = frozendict()
-    triggers: FrozenDict[str, AnyTrigger] = frozendict()
+    flows: dict[str, UnresolvedFlow] = {}
+    targets: dict[str, Target] = {}
+    triggers: dict[str, AnyTrigger] = {}
 
     @classmethod
     def from_file(cls, file: Path) -> Config:
@@ -194,6 +192,7 @@ class Config(Model):
             raise NotImplementedError("Currently, only YAML files are supported.")
 
     def resolve(self) -> Mapping[str, Flow]:
+        print(self.flows)
         return {
             flow_id: flow.resolve(self.targets, self.triggers)
             for flow_id, flow in self.flows.items()

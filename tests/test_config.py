@@ -2,7 +2,6 @@ import shutil
 from pathlib import Path
 
 import pytest
-from frozendict import frozendict
 from rich.style import Style
 
 from synthesize.config import (
@@ -221,14 +220,14 @@ def test_resolve_flow_node(
                 nodes={
                     "foo": UnresolvedFlowNode(
                         target="t",
-                        args=frozendict({"foo": "bar"}),
-                        envs=frozendict({"FOO": "BAR"}),
+                        args={"foo": "bar"},
+                        envs={"FOO": "BAR"},
                         trigger="r",
                         color=color,
                     )
                 },
-                args=frozendict({"baz": "qux"}),
-                envs=frozendict({"BAZ": "QUX"}),
+                args={"baz": "qux"},
+                envs={"BAZ": "QUX"},
             ),
             {"t": Target(commands="echo")},
             {"r": Restart()},
@@ -237,14 +236,14 @@ def test_resolve_flow_node(
                     "foo": FlowNode(
                         id="foo",
                         target=Target(commands="echo"),
-                        args=frozendict({"foo": "bar"}),
-                        envs=frozendict({"FOO": "BAR"}),
+                        args={"foo": "bar"},
+                        envs={"FOO": "BAR"},
                         trigger=Restart(),
                         color=color,
                     )
                 },
-                args=frozendict({"baz": "qux"}),
-                envs=frozendict({"BAZ": "QUX"}),
+                args={"baz": "qux"},
+                envs={"BAZ": "QUX"},
             ),
         ),
     ),
@@ -268,14 +267,14 @@ def test_resolve_flow(
                         nodes={
                             "foo": UnresolvedFlowNode(
                                 target="t",
-                                args=frozendict({"foo": "bar"}),
-                                envs=frozendict({"FOO": "BAR"}),
+                                args={"foo": "bar"},
+                                envs={"FOO": "BAR"},
                                 trigger="r",
                                 color=color,
                             )
                         },
-                        args=frozendict({"baz": "qux"}),
-                        envs=frozendict({"BAZ": "QUX"}),
+                        args={"baz": "qux"},
+                        envs={"BAZ": "QUX"},
                     )
                 },
                 targets={"t": Target(commands="echo")},
@@ -287,14 +286,14 @@ def test_resolve_flow(
                         "foo": FlowNode(
                             id="foo",
                             target=Target(commands="echo"),
-                            args=frozendict({"foo": "bar"}),
-                            envs=frozendict({"FOO": "BAR"}),
+                            args={"foo": "bar"},
+                            envs={"FOO": "BAR"},
                             trigger=Restart(),
                             color=color,
                         )
                     },
-                    args=frozendict({"baz": "qux"}),
-                    envs=frozendict({"BAZ": "QUX"}),
+                    args={"baz": "qux"},
+                    envs={"BAZ": "QUX"},
                 ),
             },
         ),

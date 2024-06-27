@@ -40,7 +40,7 @@ class Orchestrator:
         self.heartbeat: Task[None] | None = None
 
     async def run(self) -> None:
-        if not self.state.nodes():
+        if not self.flow.nodes:
             return
 
         with TemporaryDirectory(prefix="synth-") as tmpdir, self.renderer:
