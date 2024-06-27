@@ -121,9 +121,9 @@ class FlowNode(Model):
     args: Args = {}
     envs: Envs = {}
 
-    trigger: AnyTrigger
+    trigger: AnyTrigger = Once()
 
-    color: str
+    color: Annotated[str, Field(default_factory=random_color)]
 
 
 class UnresolvedFlowNode(Model):
@@ -192,7 +192,6 @@ class Config(Model):
             raise NotImplementedError("Currently, only YAML files are supported.")
 
     def resolve(self) -> Mapping[str, Flow]:
-        print(self.flows)
         return {
             flow_id: flow.resolve(self.targets, self.triggers)
             for flow_id, flow in self.flows.items()
