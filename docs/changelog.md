@@ -14,6 +14,12 @@
   Reorganized configuration to separate targets,
   triggers (formerly "lifecycles"),
   and flows (graphs of targets and triggers)."
+- [#33](https://github.com/JoshKarpel/synthesize/pull/33)
+  Allow injecting arguments
+  (via [Jinja2 templates](https://jinja.palletsprojects.com/))
+  and environment variables into target commands.
+  Arguments and environment variables can be specified at either
+  the flow, node, or target level, with the most specific taking precedence.
 
 ## `0.0.2`
 
