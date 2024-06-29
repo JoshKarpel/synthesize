@@ -37,6 +37,10 @@ def run(
         envvar="SYNTHFILE",
         help="The path to the configuration file to execute.",
     ),
+    mermaid: bool = Option(
+        default=False,
+        help="If enabled, output a description of the flow as a Mermaid diagram, and don't run the flow.",
+    ),
     dry: bool = Option(
         default=False,
         help="If enabled, do not run actually run the flow.",
@@ -80,6 +84,10 @@ def run(
             )
         )
         raise Exit(code=1)
+
+    if mermaid:
+        print(selected_flow.mermaid())
+        return
 
     if dry:
         return

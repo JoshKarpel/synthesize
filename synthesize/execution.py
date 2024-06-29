@@ -12,11 +12,10 @@ from time import monotonic
 
 from synthesize.config import Args, Envs, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
-from synthesize.utils import md5
 
 
 def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
-    path = tmp_dir / f"{node.id}-{md5(node.model_dump_json().encode())}"
+    path = tmp_dir / f"{node.id}-{node.uid}"
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(

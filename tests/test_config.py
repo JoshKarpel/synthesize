@@ -18,10 +18,17 @@ from synthesize.config import (
     random_color,
 )
 
+ROOT = Path(__file__).parent.parent
+EXAMPLES = [
+    *(ROOT / "docs" / "examples").iterdir(),
+    ROOT / "synth.yaml",
+]
 
-@pytest.mark.parametrize("example", list((Path(__file__).parent.parent / "examples").iterdir()))
-def test_config_examples_parse(example: Path) -> None:
-    Config.from_file(example)
+
+@pytest.mark.parametrize("example", EXAMPLES)
+def test_can_generate_mermaid_from_examples(example: Path) -> None:
+    for flow in Config.from_file(example).resolve().values():
+        flow.mermaid()
 
 
 def test_can_make_style_from_random_color() -> None:

@@ -1,0 +1,19 @@
+flows:
+  default:
+    nodes:
+      1:
+        target: sleep-and-echo
+        trigger:
+          type: restart
+          delay: 3
+      2:
+        target: sleep-and-echo
+        trigger:
+          type: restart
+          delay: 1
+
+targets:
+  sleep-and-echo:
+    commands: |
+      sleep 1
+      echo "Hi from {{ id }}!"

@@ -1,0 +1,15 @@
+flows:
+  default:
+    nodes:
+      1:
+        target: sleep-and-echo
+      2:
+        target: sleep-and-echo
+      3:
+        target: sleep-and-echo
+
+targets:
+  sleep-and-echo:
+    commands: |
+      sleep 1
+      echo "Hi from {{ id }}!"
