@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from pydantic import Field
 from watchfiles import Change
@@ -20,6 +20,7 @@ class ExecutionCompleted(Message):
     node: FlowNode
     pid: int
     exit_code: int
+    duration: timedelta
 
 
 class ExecutionOutput(Message):
