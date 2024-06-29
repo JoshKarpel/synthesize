@@ -52,6 +52,9 @@ template_environment = Environment()
 
 class Target(Model):
     commands: str = ""
+    args: Args = {}
+    envs: Envs = {}
+
     executable: str = "sh -u"
 
     @field_validator("commands")

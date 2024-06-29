@@ -20,6 +20,7 @@ def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
     path.write_text(
         node.target.render(
             args=args
+            | node.target.args
             | node.args
             | {
                 "id": node.id,
@@ -58,6 +59,7 @@ class Execution:
             stderr=STDOUT,
             env=os.environ
             | envs
+            | node.target.envs
             | node.envs
             | {
                 "FORCE_COLOR": "1",
