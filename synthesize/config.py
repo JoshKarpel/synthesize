@@ -171,10 +171,7 @@ class UnresolvedFlow(Model):
         triggers: Mapping[str, AnyTrigger],
     ) -> Flow:
         return Flow(
-            nodes={
-                node_id: node.resolve(node_id, targets, triggers)
-                for node_id, node in self.nodes.items()
-            },
+            nodes={id: node.resolve(id, targets, triggers) for id, node in self.nodes.items()},
             args=self.args,
             envs=self.envs,
         )
@@ -195,7 +192,4 @@ class Config(Model):
             raise NotImplementedError("Currently, only YAML files are supported.")
 
     def resolve(self) -> Mapping[str, Flow]:
-        return {
-            flow_id: flow.resolve(self.targets, self.triggers)
-            for flow_id, flow in self.flows.items()
-        }
+        return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}
