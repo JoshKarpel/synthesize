@@ -4,9 +4,11 @@ import os
 from asyncio import Queue, Task, create_task
 from asyncio.subprocess import PIPE, STDOUT, Process, create_subprocess_exec
 from dataclasses import dataclass, field
+from datetime import timedelta
 from pathlib import Path
 from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
+from time import monotonic
 
 from synthesize.config import Args, Envs, FlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
@@ -39,6 +41,7 @@ class Execution:
     events: Queue[Message] = field(repr=False)
 
     process: Process
+    start_time: float
     reader: Task[None]
 
     @classmethod
@@ -52,6 +55,8 @@ class Execution:
         events: Queue[Message],
     ) -> Execution:
         path = write_script(node=node, args=args, tmp_dir=tmp_dir)
+
+        start_time = monotonic()
 
         process = await create_subprocess_exec(
             program=path,
@@ -86,6 +91,7 @@ class Execution:
             node=node,
             events=events,
             process=process,
+            start_time=start_time,
             reader=reader,
         )
 
@@ -115,6 +121,7 @@ class Execution:
 
     async def wait(self) -> Execution:
         exit_code = await self.process.wait()
+        end_time = monotonic()
 
         await self.reader
 
@@ -123,6 +130,7 @@ class Execution:
                 node=self.node,
                 pid=self.pid,
                 exit_code=exit_code,
+                duration=timedelta(seconds=end_time - self.start_time),
             )
         )
 

@@ -120,11 +120,12 @@ class Renderer:
                     (node.id, node.color),
                     f" started (pid {pid})",
                 )
-            case ExecutionCompleted(node=node, pid=pid, exit_code=exit_code):
+            case ExecutionCompleted(node=node, pid=pid, exit_code=exit_code, duration=duration):
                 parts = (
                     (node.id, node.color),
                     f" (pid {pid}) exited with code ",
                     (str(exit_code), "green" if exit_code == 0 else "red"),
+                    f" in {duration.total_seconds() :.3f} seconds",
                 )
             case WatchPathChanged(node=node):
                 changes = Text(" ").join(
