@@ -21,6 +21,8 @@
   Reorganized configuration to separate targets,
   triggers (formerly "lifecycles"),
   and flows (graphs of targets and triggers)."
+- [#41](https://github.com/JoshKarpel/synthesize/pull/41)
+  Execution duration is printed in the completion message.
 
 ## `0.0.2`
 
