@@ -1,0 +1,19 @@
+flows:
+  default:
+    nodes:
+      1:
+        target: sleep-and-echo
+        trigger:
+          type: watch
+          paths: ["synthesize/", "tests/"]
+      2:
+        target: sleep-and-echo
+        trigger:
+          type: watch
+          paths: [ "docs/" ]
+
+targets:
+  sleep-and-echo:
+    commands: |
+      sleep 1
+      echo "Hi from {{ id }}!"

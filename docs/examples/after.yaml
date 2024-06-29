@@ -23,5 +23,5 @@ flows:
 targets:
   sleep-and-echo:
     commands: |
-      sleep 2
+      sleep 1
       echo "Hi from {{ id }}!"
