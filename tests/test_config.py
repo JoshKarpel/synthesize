@@ -18,7 +18,8 @@ from synthesize.config import (
     random_color,
 )
 
-EXAMPLES = list((Path(__file__).parent.parent / "docs" / "examples").iterdir())
+ROOT = Path(__file__).parent.parent
+EXAMPLES = [*(ROOT / "docs" / "examples").iterdir(), ROOT / "synth.yaml"]
 
 
 @pytest.mark.parametrize("example", EXAMPLES)

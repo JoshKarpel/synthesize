@@ -33,3 +33,4 @@ triggers:
       - tests/
       - docs/examples/
       - pyproject.toml
+      - .coveragerc

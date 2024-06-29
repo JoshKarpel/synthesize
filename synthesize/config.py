@@ -194,8 +194,8 @@ class Flow(Model):
                         seen_watches.add(h)
                         lines.append(f'w_{h}[("{text}")]')
                     lines.append(f"w_{h} -->|👁| {node.id}")
-                case _:
-                    assert_never(node.trigger)
+                case never:
+                    assert_never(never)
 
         return "\n  ".join(lines).strip()
 
