@@ -102,18 +102,15 @@ class Execution:
         return self.exit_code is not None
 
     def _send_signal(self, signal: int) -> None:
+        if self.has_exited:
+            return None
+
         os.killpg(os.getpgid(self.process.pid), signal)
 
     def terminate(self) -> None:
-        if self.has_exited:
-            return None
-
         self._send_signal(SIGTERM)
 
     def kill(self) -> None:
-        if self.has_exited:
-            return None
-
         self._send_signal(SIGKILL)
 
     async def wait(self) -> Execution:

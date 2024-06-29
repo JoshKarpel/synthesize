@@ -55,7 +55,7 @@ class Target(Model):
     args: Args = {}
     envs: Envs = {}
 
-    executable: str = "sh -u"
+    executable: str = "sh -eu"
 
     @field_validator("commands")
     @classmethod

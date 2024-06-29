@@ -57,29 +57,29 @@ def test_target_commands_dedenting(raw: str, expected: str) -> None:
     ("target", "args", "expected"),
     (
         (
-            Target(commands=""),
+            Target(commands="", executable="sh"),
             Args(),
-            f"#!{shutil.which('sh')} -u\n",
+            f"#!{shutil.which('sh')}\n",
         ),
         (
-            Target(commands="echo 'hello'"),
+            Target(commands="echo 'hello'", executable="sh"),
             Args(),
-            f"#!{shutil.which('sh')} -u\n\necho 'hello'",
+            f"#!{shutil.which('sh')}\n\necho 'hello'",
         ),
         (
-            Target(commands="echo '{{foo}}'"),
+            Target(commands="echo '{{foo}}'", executable="sh"),
             Args({"foo": "bar"}),
-            f"#!{shutil.which('sh')} -u\n\necho 'bar'",
+            f"#!{shutil.which('sh')}\n\necho 'bar'",
         ),
         (  # unused values are ok
-            Target(commands="echo '{{foo}}'"),
+            Target(commands="echo '{{foo}}'", executable="sh"),
             Args({"foo": "bar", "baz": "qux"}),
-            f"#!{shutil.which('sh')} -u\n\necho 'bar'",
+            f"#!{shutil.which('sh')}\n\necho 'bar'",
         ),
         (
-            Target(commands="echo {{foo}} {{baz}}"),
+            Target(commands="echo {{foo}} {{baz}}", executable="sh"),
             Args({"foo": "bar", "baz": "qux"}),
-            f"#!{shutil.which('sh')} -u\n\necho bar qux",
+            f"#!{shutil.which('sh')}\n\necho bar qux",
         ),
         (
             Target(commands="echo", executable="bash"),
@@ -87,14 +87,14 @@ def test_target_commands_dedenting(raw: str, expected: str) -> None:
             f"#!{shutil.which('bash')}\n\necho",
         ),
         (
-            Target(commands="{{ 'yes' if choice else 'no' }}"),
+            Target(commands="{{ 'yes' if choice else 'no' }}", executable="sh"),
             Args({"choice": True}),
-            f"#!{shutil.which('sh')} -u\n\nyes",
+            f"#!{shutil.which('sh')}\n\nyes",
         ),
         (
-            Target(commands="{{ 'yes' if choice else 'no' }}"),
+            Target(commands="{{ 'yes' if choice else 'no' }}", executable="sh"),
             Args({"choice": False}),
-            f"#!{shutil.which('sh')} -u\n\nno",
+            f"#!{shutil.which('sh')}\n\nno",
         ),
     ),
 )
