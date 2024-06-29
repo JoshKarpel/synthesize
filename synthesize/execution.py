@@ -20,6 +20,7 @@ def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
     path.write_text(
         node.target.render(
             args=args
+            | node.target.args
             | node.args
             | {
                 "id": node.id,
@@ -58,6 +59,7 @@ class Execution:
             stderr=STDOUT,
             env=os.environ
             | envs
+            | node.target.envs
             | node.envs
             | {
                 "FORCE_COLOR": "1",
@@ -100,18 +102,15 @@ class Execution:
         return self.exit_code is not None
 
     def _send_signal(self, signal: int) -> None:
+        if self.has_exited:
+            return None
+
         os.killpg(os.getpgid(self.process.pid), signal)
 
     def terminate(self) -> None:
-        if self.has_exited:
-            return None
-
         self._send_signal(SIGTERM)
 
     def kill(self) -> None:
-        if self.has_exited:
-            return None
-
         self._send_signal(SIGKILL)
 
     async def wait(self) -> Execution:
