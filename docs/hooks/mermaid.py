@@ -14,7 +14,7 @@ def on_page_markdown(
 ) -> str:
     lines = []
     for line in markdown.splitlines():
-        if match := re.match(r"@mermaid\(([\w\.\/]+)\)", line):
+        if match := re.match(r"@mermaid\(([\w\.\/\-]+)\)", line):
             lines.append("```mermaid")
             cmd = subprocess.run(
                 ("synth", "--mermaid", "--config", match.group(1)),

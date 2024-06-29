@@ -1,11 +1,11 @@
 flows:
   default:
     nodes:
-      1:
+      A:
         target: sleep-and-echo
-      2:
+      B:
         target: sleep-and-echo
-      3:
+      C:
         target: sleep-and-echo
 
 targets:

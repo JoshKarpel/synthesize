@@ -4,16 +4,19 @@ flows:
       A:
         target: sleep-and-echo
         trigger:
-          type: watch
-          paths: ["synthesize/", "tests/"]
+          type: restart
+          delay: 10
       B:
         target: sleep-and-echo
         trigger:
-          type: watch
-          paths: [ "docs/" ]
+          after: ["A"]
+      C:
+        target: sleep-and-echo
+        trigger:
+          after: ["B"]
 
 targets:
   sleep-and-echo:
     commands: |
-      sleep 1
+      sleep 2
       echo "Hi from {{ id }}!"

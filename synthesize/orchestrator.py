@@ -20,7 +20,7 @@ from synthesize.messages import (
     WatchPathChanged,
 )
 from synthesize.renderer import Renderer
-from synthesize.state import FlowState
+from synthesize.state import FlowState, Status
 from synthesize.utils import delay
 
 
@@ -87,11 +87,14 @@ class Orchestrator:
                         else:
                             self.state.mark_failure(node)
 
+                    self.state.mark_pending(*self.state.children(node))
+
                 case WatchPathChanged(node=node):
                     if e := self.executions.get(node.id):
+                        self.waiters[node.id].add_done_callback(
+                            lambda _: self.state.mark_pending(node)
+                        )
                         e.terminate()
-
-                    self.state.mark_descendants_pending(node)
 
                 case Quit():
                     return
@@ -112,28 +115,28 @@ class Orchestrator:
         self.heartbeat = create_task(heartbeat())
 
     async def start_ready_targets(self, tmp_dir: Path) -> None:
-        for ready_node in self.state.ready_nodes():
-            if e := self.executions.get(ready_node.id):
+        for node in self.state.ready_nodes():
+            if e := self.executions.get(node.id):
                 if not e.has_exited:
                     continue
 
-            self.state.mark_running(ready_node)
-
             async def start() -> None:
                 e = await Execution.start(
-                    node=ready_node,
+                    node=node,
                     args=self.flow.args,
                     envs=self.flow.envs,
                     tmp_dir=tmp_dir,
                     width=self.console.width - self.renderer.prefix_width,
                     events=self.inbox,
                 )
-                self.executions[ready_node.id] = e
-                self.waiters[ready_node.id] = create_task(e.wait())
+                self.executions[node.id] = e
+                self.waiters[node.id] = create_task(e.wait())
+                self.state.mark_running(node)
 
             # When restarting after first execution, delay
-            if isinstance(ready_node.trigger, Restart) and ready_node.id in self.executions:
-                delay(ready_node.trigger.delay, start)
+            if isinstance(node.trigger, Restart) and node.id in self.executions:
+                self.state.mark(node, status=Status.Waiting)
+                delay(node.trigger.delay, start)
             else:
                 await start()
 

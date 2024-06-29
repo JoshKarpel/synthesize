@@ -26,6 +26,11 @@
 - [#41](https://github.com/JoshKarpel/synthesize/pull/41)
   Execution duration is printed in the completion message.
 
+### Fixed
+
+- [#45](https://github.com/JoshKarpel/synthesize/pull/45)
+  `Restart` triggers now allow for the node's children to run again after the node completes.
+
 ## `0.0.2`
 
 Released `2023-02-12`

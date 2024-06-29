@@ -1,12 +1,12 @@
 flows:
   default:
     nodes:
-      1:
+      A:
         target: sleep-and-echo
         trigger:
           type: restart
           delay: 3
-      2:
+      B:
         target: sleep-and-echo
         trigger:
           type: restart
