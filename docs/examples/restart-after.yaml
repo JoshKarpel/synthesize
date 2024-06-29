@@ -3,6 +3,9 @@ flows:
     nodes:
       A:
         target: sleep-and-echo
+        trigger:
+          type: restart
+          delay: 5
       B:
         target: sleep-and-echo
       C:

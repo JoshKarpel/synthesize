@@ -1,12 +1,12 @@
 flows:
   default:
     nodes:
-      1:
+      A:
         target: sleep-and-echo
         trigger:
           type: watch
           paths: ["synthesize/", "tests/"]
-      2:
+      B:
         target: sleep-and-echo
         trigger:
           type: watch
