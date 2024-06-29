@@ -55,6 +55,12 @@ Use this trigger to run a node in reaction to changes in the filesystem.
 ## Combining Triggers
 
 ```yaml
+--8<-- "docs/examples/restart-after.yaml"
+```
+
+@mermaid(docs/examples/restart-after.yaml)
+
+```yaml
 --8<-- "synth.yaml"
 ```
 
