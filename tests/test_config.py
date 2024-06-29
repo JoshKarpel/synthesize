@@ -19,7 +19,9 @@ from synthesize.config import (
 )
 
 
-@pytest.mark.parametrize("example", list((Path(__file__).parent.parent / "examples").iterdir()))
+@pytest.mark.parametrize(
+    "example", list((Path(__file__).parent.parent / "docs" / "examples").iterdir())
+)
 def test_config_examples_parse(example: Path) -> None:
     Config.from_file(example)
 

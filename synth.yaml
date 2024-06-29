@@ -31,5 +31,5 @@ triggers:
     paths:
       - synthesize/
       - tests/
-      - examples/
+      - docs/examples/
       - pyproject.toml

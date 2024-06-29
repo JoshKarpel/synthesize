@@ -4,6 +4,7 @@ import shlex
 import shutil
 from collections.abc import Mapping
 from colorsys import hsv_to_rgb
+from functools import cached_property
 from pathlib import Path
 from random import random
 from textwrap import dedent
@@ -15,6 +16,7 @@ from pydantic import Field, field_validator
 from rich.color import Color
 
 from synthesize.model import Model
+from synthesize.utils import md5
 
 Args = dict[
     Annotated[
@@ -35,6 +37,12 @@ Envs = dict[
         ),
     ],
     str,
+]
+ID = Annotated[
+    str,
+    Field(
+        pattern=r"\w+",
+    ),
 ]
 
 
@@ -88,7 +96,7 @@ class Once(Model):
 class After(Model):
     type: Literal["after"] = "after"
 
-    after: Annotated[frozenset[str], Field(min_length=1)]
+    after: Annotated[tuple[str, ...], Field(min_length=1)]
 
 
 class Restart(Model):
@@ -128,13 +136,17 @@ class FlowNode(Model):
 
     color: Annotated[str, Field(default_factory=random_color)]
 
+    @cached_property
+    def uid(self) -> str:
+        return md5(self.model_dump_json(exclude={"color"}).encode())
+
 
 class UnresolvedFlowNode(Model):
-    target: Target | str
+    target: Target | ID
     args: Args = {}
     envs: Envs = {}
 
-    trigger: AnyTrigger | str = Once()
+    trigger: AnyTrigger | ID = Once()
 
     color: Annotated[str, Field(default_factory=random_color)]
 
@@ -155,20 +167,32 @@ class UnresolvedFlowNode(Model):
 
 
 class Flow(Model):
-    nodes: dict[str, FlowNode]
+    nodes: dict[ID, FlowNode]
     args: Args = {}
     envs: Envs = {}
 
+    def mermaid(self) -> str:
+        lines = ["flowchart TD"]
+
+        for id, node in self.nodes.items():
+            lines.append(f"{node.id}({id})")
+
+            if node.trigger.type == "after":
+                for after in node.trigger.after:
+                    lines.append(f" {self.nodes[after].id} --> {node.id}")
+
+        return "\n  ".join(lines).strip()
+
 
 class UnresolvedFlow(Model):
-    nodes: dict[str, UnresolvedFlowNode]
+    nodes: dict[ID, UnresolvedFlowNode]
     args: Args = {}
     envs: Envs = {}
 
     def resolve(
         self,
-        targets: Mapping[str, Target],
-        triggers: Mapping[str, AnyTrigger],
+        targets: Mapping[ID, Target],
+        triggers: Mapping[ID, AnyTrigger],
     ) -> Flow:
         return Flow(
             nodes={id: node.resolve(id, targets, triggers) for id, node in self.nodes.items()},
@@ -178,9 +202,9 @@ class UnresolvedFlow(Model):
 
 
 class Config(Model):
-    flows: dict[str, UnresolvedFlow] = {}
-    targets: dict[str, Target] = {}
-    triggers: dict[str, AnyTrigger] = {}
+    flows: dict[ID, UnresolvedFlow] = {}
+    targets: dict[ID, Target] = {}
+    triggers: dict[ID, AnyTrigger] = {}
 
     @classmethod
     def from_file(cls, file: Path) -> Config:
@@ -191,5 +215,5 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self) -> Mapping[str, Flow]:
+    def resolve(self) -> Mapping[ID, Flow]:
         return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}
