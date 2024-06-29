@@ -19,7 +19,10 @@ from synthesize.config import (
 )
 
 ROOT = Path(__file__).parent.parent
-EXAMPLES = [*(ROOT / "docs" / "examples").iterdir(), ROOT / "synth.yaml"]
+EXAMPLES = [
+    *(ROOT / "docs" / "examples").iterdir(),
+    ROOT / "synth.yaml",
+]
 
 
 @pytest.mark.parametrize("example", EXAMPLES)
