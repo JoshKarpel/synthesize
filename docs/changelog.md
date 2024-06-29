@@ -14,6 +14,8 @@
   and environment variables into target commands.
   Arguments and environment variables can be specified at either
   the flow, node, or target level, with the most specific taking precedence.
+- [#43](https://github.com/JoshKarpel/synthesize/pull/43)
+  Mermaid diagrams can be generated for a flow using the `--mermaid` option.
 
 ### Changed
 

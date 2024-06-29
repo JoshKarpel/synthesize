@@ -39,7 +39,7 @@ def run(
     ),
     mermaid: bool = Option(
         default=False,
-        help="If enabled, output the flow as a Mermaid diagram, and don't run the flow.",
+        help="If enabled, output a description of the flow as a Mermaid diagram, and don't run the flow.",
     ),
     dry: bool = Option(
         default=False,
