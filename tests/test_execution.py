@@ -49,6 +49,7 @@ async def test_execution_lifecycle(tmp_path: Path) -> None:
     assert msg.node is node
     assert msg.pid == ex.pid
     assert msg.exit_code == ex.exit_code == 0
+    assert msg.duration.total_seconds() > 0
 
 
 async def test_termination_before_completion(tmp_path: Path) -> None:
