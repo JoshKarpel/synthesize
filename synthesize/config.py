@@ -14,6 +14,7 @@ from identify.identify import tags_from_path
 from jinja2 import Environment
 from pydantic import Field, field_validator
 from rich.color import Color
+from typing_extensions import assert_never
 
 from synthesize.model import Model
 from synthesize.utils import md5
@@ -174,12 +175,27 @@ class Flow(Model):
     def mermaid(self) -> str:
         lines = ["flowchart TD"]
 
+        seen_watches = set()
         for id, node in self.nodes.items():
             lines.append(f"{node.id}({id})")
 
-            if node.trigger.type == "after":
-                for after in node.trigger.after:
-                    lines.append(f" {self.nodes[after].id} --> {node.id}")
+            match node.trigger:
+                case Once():
+                    pass
+                case After(after=after):
+                    for a in after:
+                        lines.append(f"{self.nodes[a].id} --> {node.id}")
+                case Restart(delay=delay):
+                    lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
+                case Watch(paths=paths):
+                    text = "\n".join(paths)
+                    h = md5("".join(paths))
+                    if h not in seen_watches:
+                        seen_watches.add(h)
+                        lines.append(f'w_{h}[("{text}")]')
+                    lines.append(f"w_{h} -->|👁| {node.id}")
+                case _:
+                    assert_never(node.trigger)
 
         return "\n  ".join(lines).strip()
 
