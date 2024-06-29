@@ -5,26 +5,18 @@ flows:
         target: sleep-and-echo
         trigger:
           type: restart
-          delay: 5
+          delay: 10
       B:
         target: sleep-and-echo
+        trigger:
+          after: ["A"]
       C:
         target: sleep-and-echo
-      D:
-        target: sleep-and-echo
         trigger:
-          after: ["A", "B"]
-      E:
-        target: sleep-and-echo
-        trigger:
-          after: ["C"]
-      F:
-        target: sleep-and-echo
-        trigger:
-          after: ["D", "E"]
+          after: ["B"]
 
 targets:
   sleep-and-echo:
     commands: |
-      sleep 1
+      sleep 2
       echo "Hi from {{ id }}!"

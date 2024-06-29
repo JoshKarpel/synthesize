@@ -21,7 +21,7 @@ from synthesize.messages import (
     Message,
     WatchPathChanged,
 )
-from synthesize.state import FlowState
+from synthesize.state import FlowState, Status
 
 prefix_format = "{timestamp:%H:%M:%S} {id}  "
 internal_format = "{timestamp:%H:%M:%S}"
@@ -61,28 +61,43 @@ class Renderer:
         self.update(message)
 
     def info(self, event: Message) -> RenderableType:
-        table = Table.grid(padding=(1, 1, 0, 0))
+        table = Table.grid(padding=(1, 1, 0, 0), expand=False)
 
-        running_nodes = self.state.running_nodes()
+        status_table = Table.grid(padding=(2, 2, 0, 0), expand=False)
 
-        running = (
-            Text.assemble(
-                "Running ",
-                Text(" ").join(
-                    Text(t.id, style=Style(color="black", bgcolor=t.color))
-                    for t in sorted(running_nodes, key=lambda t: t.id)
-                ),
-            )
-            if running_nodes
-            else Text()
-        )
+        nodes_by_status = self.state.nodes_by_status()
+        node_status_displays = []
+        for status in (
+            Status.Running,
+            Status.Waiting,
+            Status.Pending,
+            Status.Succeeded,
+            Status.Failed,
+        ):
+            nodes_with_status = nodes_by_status[status]
+            if nodes_with_status:
+                node_status_displays.append(
+                    Text.assemble(
+                        status.value.capitalize(),
+                        " ",
+                        Text(" ").join(
+                            Text(t.id, style=Style(color="black", bgcolor=t.color))
+                            for t in sorted(nodes_with_status, key=lambda t: t.id)
+                        ),
+                    )
+                )
+
+        status_table.add_row(*node_status_displays)
 
         table.add_row(
             internal_format.format_map({"timestamp": event.timestamp}),
-            running,
+            status_table,
         )
 
-        return Group(Rule(style=(Style(color="green" if running_nodes else "yellow"))), table)
+        return Group(
+            Rule(style=(Style(color="green" if nodes_by_status[Status.Running] else "yellow"))),
+            table,
+        )
 
     def render_prefix(
         self, message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged
@@ -109,7 +124,7 @@ class Renderer:
     ) -> None:
         prefix = Text.from_markup(
             self.render_prefix(message),
-            style=Style(color=message.node.color),
+            style=Style(color=message.node.color, dim=True),
         )
 
         parts: tuple[str | tuple[str, str] | tuple[str, Style] | Text, ...]
