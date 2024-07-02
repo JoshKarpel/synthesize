@@ -21,7 +21,8 @@ from synthesize.messages import (
     Message,
     WatchPathChanged,
 )
-from synthesize.state import FlowState, Status
+from synthesize.orchestrator import Status
+from synthesize.state import FlowState
 
 prefix_format = "{timestamp:%H:%M:%S} {id}  "
 internal_format = "{timestamp:%H:%M:%S}"

@@ -9,6 +9,8 @@ This is the default trigger.
 
 Use this trigger when a command needs to run only one time during a flow.
 
+@schema(synthesize.config.Once)
+
 ```yaml
 --8<-- "docs/examples/once.yaml"
 ```

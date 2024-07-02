@@ -123,7 +123,7 @@ color = random_color()
         (
             UnresolvedFlowNode(
                 target=Target(commands="echo"),
-                trigger=Once(),
+                triggers=[Once()],
                 color=color,
             ),
             "foo",
@@ -132,14 +132,14 @@ color = random_color()
             FlowNode(
                 id="foo",
                 target=Target(commands="echo"),
-                trigger=Once(),
+                triggers=[Once()],
                 color=color,
             ),
         ),
         (
             UnresolvedFlowNode(
                 target="t",
-                trigger=Once(),
+                triggers=[Once()],
                 color=color,
             ),
             "foo",
@@ -148,14 +148,14 @@ color = random_color()
             FlowNode(
                 id="foo",
                 target=Target(commands="echo"),
-                trigger=Once(),
+                triggers=[Once()],
                 color=color,
             ),
         ),
         (
             UnresolvedFlowNode(
                 target=Target(commands="echo"),
-                trigger="r",
+                triggers=["r"],
                 color=color,
             ),
             "foo",
@@ -164,14 +164,14 @@ color = random_color()
             FlowNode(
                 id="foo",
                 target=Target(commands="echo"),
-                trigger=Once(),
+                triggers=[Once()],
                 color=color,
             ),
         ),
         (
             UnresolvedFlowNode(
                 target="t",
-                trigger="r",
+                triggers=["r"],
                 color=color,
             ),
             "foo",
@@ -180,7 +180,7 @@ color = random_color()
             FlowNode(
                 id="foo",
                 target=Target(commands="echo"),
-                trigger=Once(),
+                triggers=[Once()],
                 color=color,
             ),
         ),
@@ -204,7 +204,7 @@ def test_resolve_flow_node(
                 nodes={
                     "foo": UnresolvedFlowNode(
                         target=Target(commands="echo"),
-                        trigger=Once(),
+                        triggers=[Once()],
                         color=color,
                     )
                 }
@@ -216,7 +216,7 @@ def test_resolve_flow_node(
                     "foo": FlowNode(
                         id="foo",
                         target=Target(commands="echo"),
-                        trigger=Once(),
+                        triggers=[Once()],
                         color=color,
                     )
                 }
@@ -229,7 +229,7 @@ def test_resolve_flow_node(
                         target="t",
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
-                        trigger="r",
+                        triggers=["r"],
                         color=color,
                     )
                 },
@@ -245,7 +245,7 @@ def test_resolve_flow_node(
                         target=Target(commands="echo"),
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
-                        trigger=Restart(),
+                        triggers=[Restart()],
                         color=color,
                     )
                 },
@@ -276,7 +276,7 @@ def test_resolve_flow(
                                 target="t",
                                 args={"foo": "bar"},
                                 envs={"FOO": "BAR"},
-                                trigger="r",
+                                triggers=["r"],
                                 color=color,
                             )
                         },
@@ -295,7 +295,7 @@ def test_resolve_flow(
                             target=Target(commands="echo"),
                             args={"foo": "bar"},
                             envs={"FOO": "BAR"},
-                            trigger=Restart(),
+                            triggers=[Restart()],
                             color=color,
                         )
                     },

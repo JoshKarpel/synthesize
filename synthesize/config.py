@@ -12,6 +12,7 @@ from typing import Annotated, Literal, Union
 
 from identify.identify import tags_from_path
 from jinja2 import Environment
+from networkx import DiGraph
 from pydantic import Field, field_validator
 from rich.color import Color
 from typing_extensions import assert_never
@@ -133,7 +134,7 @@ class FlowNode(Model):
     args: Args = {}
     envs: Envs = {}
 
-    trigger: AnyTrigger = Once()
+    triggers: tuple[AnyTrigger, ...] = (Once(),)
 
     color: Annotated[str, Field(default_factory=random_color)]
 
@@ -147,7 +148,7 @@ class UnresolvedFlowNode(Model):
     args: Args = {}
     envs: Envs = {}
 
-    trigger: AnyTrigger | ID = Once()
+    triggers: tuple[AnyTrigger | ID, ...] = (Once(),)
 
     color: Annotated[str, Field(default_factory=random_color)]
 
@@ -162,7 +163,7 @@ class UnresolvedFlowNode(Model):
             target=targets[self.target] if isinstance(self.target, str) else self.target,
             args=self.args,
             envs=self.envs,
-            trigger=(triggers[self.trigger] if isinstance(self.trigger, str) else self.trigger),
+            triggers=tuple(triggers[t] if isinstance(t, str) else t for t in self.triggers),
             color=self.color,
         )
 
@@ -172,6 +173,19 @@ class Flow(Model):
     args: Args = {}
     envs: Envs = {}
 
+    @cached_property
+    def graph(self) -> DiGraph:
+        graph = DiGraph()
+
+        for id, node in self.nodes.items():
+            graph.add_node(id)
+            for t in node.triggers:
+                if isinstance(t, After):
+                    for predecessor_id in t.after:
+                        graph.add_edge(predecessor_id, id)
+
+        return graph
+
     def mermaid(self) -> str:
         lines = ["flowchart TD"]
 
@@ -179,23 +193,24 @@ class Flow(Model):
         for id, node in self.nodes.items():
             lines.append(f"{node.id}({id})")
 
-            match node.trigger:
-                case Once():
-                    pass
-                case After(after=after):
-                    for a in after:
-                        lines.append(f"{self.nodes[a].id} --> {node.id}")
-                case Restart(delay=delay):
-                    lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
-                case Watch(paths=paths):
-                    text = "\n".join(paths)
-                    h = md5("".join(paths))
-                    if h not in seen_watches:
-                        seen_watches.add(h)
-                        lines.append(f'w_{h}[("{text}")]')
-                    lines.append(f"w_{h} -->|👁| {node.id}")
-                case never:
-                    assert_never(never)
+            for t in node.triggers:
+                match t:
+                    case Once():
+                        pass
+                    case After(after=after):
+                        for a in after:
+                            lines.append(f"{self.nodes[a].id} --> {node.id}")
+                    case Restart(delay=delay):
+                        lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
+                    case Watch(paths=paths):
+                        text = "\n".join(paths)
+                        h = md5("".join(paths))
+                        if h not in seen_watches:
+                            seen_watches.add(h)
+                            lines.append(f'w_{h}[("{text}")]')
+                        lines.append(f"w_{h} -->|👁| {node.id}")
+                    case never:
+                        assert_never(never)
 
         return "\n  ".join(lines).strip()
 

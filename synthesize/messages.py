@@ -33,6 +33,10 @@ class WatchPathChanged(Message):
     changes: set[tuple[Change, str]]
 
 
+class DoRestart(Message):
+    pass
+
+
 class Heartbeat(Message):
     pass
 

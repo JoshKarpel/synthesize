@@ -1,16 +1,20 @@
 flows:
   default:
     nodes:
-      tests:
-        target: tests
-        trigger: code-changes
-      types:
-        target: types
-        trigger: code-changes
+#      tests:
+#        target: tests
+#        triggers:
+#        - code-changes
+#      types:
+#        target: types
+#        triggers:
+#        - code-changes
       docs:
         target: docs
-        trigger:
-          type: restart
+        triggers:
+        - delay: 5
+        - paths:
+          - docs/hooks/
 
 targets:
   tests:
@@ -29,8 +33,8 @@ triggers:
   code-changes:
     type: watch
     paths:
-      - synthesize/
-      - tests/
-      - docs/examples/
-      - pyproject.toml
-      - .coveragerc
+    - synthesize/
+    - tests/
+    - docs/examples/
+    - pyproject.toml
+    - .coveragerc

@@ -151,3 +151,8 @@ async def read_output(node: FlowNode, process: Process, events: Queue[Message]) 
                 text=line.decode("utf-8").rstrip(),
             )
         )
+
+
+# need to track which trigger caused the node to run,
+# because that changes the semantics of the restart
+# the manager should protect itself from multiple restarts?
