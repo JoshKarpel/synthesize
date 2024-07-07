@@ -58,12 +58,37 @@ Use this trigger to run a node in reaction to changes in the filesystem.
 
 @mermaid(docs/examples/watch.yaml)
 
-## Combining Triggers
+## Using Multiple Triggers
 
-### Restart + After
+### Example: Restarting on Completion or Config Changes
+
+Synthesize uses `mkdocs` for documentation.
+`mkdocs` comes with a built-in command `mkdocs serve` to watch for
+configuration and documentation changes and rebuild the site in response,
+but it doesn't automatically restart the whole process when
+[*hooks*](https://www.mkdocs.org/user-guide/configuration/#hooks)
+are changed.
+Since hooks are imported Python code, the `mkdocs` process needs to
+be restarted when they change in order to pick up changes to them.
+
+However, if the hooks (or any other configuration) are malformed,
+`mkdocs` will exit with an error on startup.
+If we were just running `mkdocs serve` by hand on the command line,
+we would have to manually restart it every time we changed the hooks,
+potentially multiple times if we are debugging.
+
+To get a hands-off developer flow to enable fast iteration cycles,
+we want the following things to all happen:
+
+- If `mkdocs` exits (for any reason), restart it.
+- If any of the hook files changes, restart `mkdocs`.
+- If neither of those happen, let `mkdocs serve` keep running forever.
+
+This is straightforward to express with Synthesize by using both restart and watch triggers
+for a target that run `mkdocs serve` (which blocks):
 
 ```yaml
---8<-- "docs/examples/restart-after.yaml"
+--8<-- "docs/examples/restart-and-watch.yaml"
 ```
 
-@mermaid(docs/examples/restart-after.yaml)
+@mermaid(docs/examples/restart-and-watch.yaml)

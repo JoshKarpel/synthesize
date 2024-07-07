@@ -13,8 +13,7 @@ flows:
         target: docs
         triggers:
         - delay: 1
-        - watch:
-          - docs/hooks/
+        - watch: ["docs/hooks/"]
 
 targets:
   tests:

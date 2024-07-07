@@ -210,8 +210,18 @@ class Node(Model):
 
 class ResolvedFlow(Model):
     nodes: dict[ID, ResolvedNode]
-    args: Args = {}
-    envs: Envs = {}
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to all nodes in this flow.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to all nodes in this flow.",
+        ),
+    ] = {}
 
     @cached_property
     def graph(self) -> DiGraph:
@@ -256,9 +266,19 @@ class ResolvedFlow(Model):
 
 
 class Flow(Model):
-    nodes: dict[ID, Node]
-    args: Args = {}
-    envs: Envs = {}
+    nodes: Mapping[ID, Node] = {}
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to all nodes in this flow.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to all nodes in this flow.",
+        ),
+    ] = {}
 
     def resolve(
         self,

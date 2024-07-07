@@ -50,10 +50,9 @@ def schema_lines(
     dt = italic(display_type(schema, defs))
 
     if schema.type in {DataType.STRING, DataType.NUMBER, DataType.BOOLEAN}:
-        dt = mono(schema.const) if schema.const else schema.description
         t = mono(schema.title.lower()) if schema.title else ""
         default = f" (Default: {mono(repr(schema.default))}) " if not schema.required else " "
-        yield f"- {t} {dt} {default}"
+        yield f"- {t} {dt} {default} {schema.description}"
     elif schema.type is DataType.ARRAY:
         t = mono(schema.title.lower()) if schema.title else ""
         yield f"- {t} {dt} {schema.description}"
@@ -95,7 +94,7 @@ def display_type(schema: Schema, defs: Mapping[str, Schema]) -> str:
     if schema.type in {DataType.STRING, DataType.NUMBER, DataType.BOOLEAN, DataType.OBJECT}:
         return schema.type.value
     elif schema.type is DataType.ARRAY:
-        return f"[{display_type(schema.items, defs)}]"
+        return f"array[{display_type(schema.items, defs)}]"
     elif schema.type is None:
         options = [ref_to_schema(s, defs) for s in schema.anyOf]
         return " | ".join(s.title or s.type for s in options)
