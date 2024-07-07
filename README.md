@@ -10,3 +10,8 @@
 
 [![GitHub issues](https://img.shields.io/github/issues/JoshKarpel/synthesize)](https://github.com/JoshKarpel/synthesize/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/JoshKarpel/synthesize)](https://github.com/JoshKarpel/synthesize/pulls)
+
+Synthesize is a tool for managing long-lived development workflows that involve multiple tools executing concurrently,
+each of which might have bespoke conditions around when and how it needs to be run or re-run.
+
+See [the documentation](https://www.synth.how) for more information.

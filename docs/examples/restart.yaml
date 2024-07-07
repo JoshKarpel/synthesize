@@ -3,14 +3,12 @@ flows:
     nodes:
       A:
         target: sleep-and-echo
-        trigger:
-          type: restart
-          delay: 3
+        triggers:
+        - delay: 3
       B:
         target: sleep-and-echo
-        trigger:
-          type: restart
-          delay: 1
+        triggers:
+        - delay: 1
 
 targets:
   sleep-and-echo:

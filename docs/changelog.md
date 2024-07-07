@@ -2,7 +2,7 @@
 
 ## `0.0.3`
 
-*Unreleased*
+Released `2024-07-07`
 
 ### Added
 
@@ -25,6 +25,8 @@
   and flows (graphs of targets and triggers)."
 - [#41](https://github.com/JoshKarpel/synthesize/pull/41)
   Execution duration is printed in the completion message.
+- [#49](https://github.com/JoshKarpel/synthesize/pull/49)
+  Flow nodes can now have multiple triggers.
 
 ### Fixed
 

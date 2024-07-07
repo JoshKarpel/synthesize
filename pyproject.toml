@@ -31,7 +31,7 @@ license = "MIT"
 include = ["py.typed"]
 
 [tool.poetry.dependencies]
-python = ">=3.10"
+python = ">=3.10,<4"  # required by openapi-pydantic
 pydantic = ">=2"
 rich = ">=13.3"
 typer = ">=0.7"
@@ -55,6 +55,7 @@ types-pyyaml = ">=6"
 mkdocs = ">=1.4"
 mkdocs-material = ">=9"
 mkdocstrings = {extras = ["python"], version = ">=0.19.0"}
+openapi-pydantic = ">=0.4"
 
 [tool.poetry.scripts]
 synth = 'synthesize.cli:cli'

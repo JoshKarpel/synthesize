@@ -3,14 +3,12 @@ flows:
     nodes:
       A:
         target: sleep-and-echo
-        trigger:
-          type: watch
-          paths: ["synthesize/", "tests/"]
+        triggers:
+        - watch: ["synthesize/", "tests/"]
       B:
         target: sleep-and-echo
-        trigger:
-          type: watch
-          paths: [ "docs/" ]
+        triggers:
+        - watch: [ "docs/" ]
 
 targets:
   sleep-and-echo:

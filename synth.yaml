@@ -3,14 +3,17 @@ flows:
     nodes:
       tests:
         target: tests
-        trigger: code-changes
+        triggers:
+        - code-changes
       types:
         target: types
-        trigger: code-changes
+        triggers:
+        - code-changes
       docs:
         target: docs
-        trigger:
-          type: restart
+        triggers:
+        - delay: 1
+        - watch: ["docs/hooks/"]
 
 targets:
   tests:
@@ -27,10 +30,10 @@ targets:
 
 triggers:
   code-changes:
-    type: watch
-    paths:
-      - synthesize/
-      - tests/
-      - docs/examples/
-      - pyproject.toml
-      - .coveragerc
+    watch:
+    - synthesize/
+    - tests/
+    - docs/examples/
+    - docs/hooks/
+    - pyproject.toml
+    - .coveragerc

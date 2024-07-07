@@ -8,10 +8,11 @@ from functools import cached_property
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Annotated, Literal, Union
+from typing import Annotated, Union
 
 from identify.identify import tags_from_path
 from jinja2 import Environment
+from networkx import DiGraph
 from pydantic import Field, field_validator
 from rich.color import Color
 from typing_extensions import assert_never
@@ -30,21 +31,8 @@ Args = dict[
     ],
     object,
 ]
-Envs = dict[
-    Annotated[
-        str,
-        Field(
-            min_length=1,
-        ),
-    ],
-    str,
-]
-ID = Annotated[
-    str,
-    Field(
-        pattern=r"\w+",
-    ),
-]
+Envs = dict[Annotated[str, Field(min_length=1)], str]
+ID = Annotated[str, Field(pattern=r"\w+")]
 
 
 def random_color() -> str:
@@ -60,11 +48,23 @@ template_environment = Environment()
 
 
 class Target(Model):
-    commands: str = ""
-    args: Args = {}
-    envs: Envs = {}
+    commands: Annotated[str, Field(description="The commands to run for this target.")] = ""
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to this target by default.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to this target by default.",
+        ),
+    ] = {}
 
-    executable: str = "sh -eu"
+    executable: Annotated[str, Field(description="The executable to run this target with.")] = (
+        "sh -eu"
+    )
 
     @field_validator("commands")
     @classmethod
@@ -91,18 +91,20 @@ class Target(Model):
 
 
 class Once(Model):
-    type: Literal["once"] = "once"
+    pass
 
 
 class After(Model):
-    type: Literal["after"] = "after"
-
-    after: Annotated[tuple[str, ...], Field(min_length=1)]
+    after: Annotated[
+        tuple[str, ...],
+        Field(
+            min_length=1,
+            description="The IDs of the nodes to wait for.",
+        ),
+    ]
 
 
 class Restart(Model):
-    type: Literal["restart"] = "restart"
-
     delay: Annotated[
         float,
         Field(
@@ -113,9 +115,12 @@ class Restart(Model):
 
 
 class Watch(Model):
-    type: Literal["watch"] = "watch"
-
-    paths: tuple[str, ...]
+    watch: Annotated[
+        tuple[str, ...],
+        Field(
+            description="The paths to watch for changes. Directories are watched recursively.",
+        ),
+    ]
 
 
 AnyTrigger = Union[
@@ -126,14 +131,24 @@ AnyTrigger = Union[
 ]
 
 
-class FlowNode(Model):
+class ResolvedNode(Model):
     id: str
 
     target: Target
-    args: Args = {}
-    envs: Envs = {}
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to this node.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to this node.",
+        ),
+    ] = {}
 
-    trigger: AnyTrigger = Once()
+    triggers: tuple[AnyTrigger, ...] = (Once(),)
 
     color: Annotated[str, Field(default_factory=random_color)]
 
@@ -142,35 +157,84 @@ class FlowNode(Model):
         return md5(self.model_dump_json(exclude={"color"}).encode())
 
 
-class UnresolvedFlowNode(Model):
-    target: Target | ID
-    args: Args = {}
-    envs: Envs = {}
+class Node(Model):
+    target: Annotated[
+        Target | ID,
+        Field(
+            description="The target to run for this node. It may either be the name of a pre-defined target, or a full target definition.",
+        ),
+    ]
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to this node.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to this node.",
+        ),
+    ] = {}
 
-    trigger: AnyTrigger | ID = Once()
+    triggers: Annotated[
+        tuple[AnyTrigger | ID, ...],
+        Field(
+            description="The list of triggers for this node. Each trigger may be the name of a pre-defined trigger, or a full trigger definition.",
+        ),
+    ] = (Once(),)
 
-    color: Annotated[str, Field(default_factory=random_color)]
+    color: Annotated[
+        str,
+        Field(
+            default_factory=random_color,
+            description="The color that will be used to help differentiate this node from others.",
+        ),
+    ]
 
     def resolve(
         self,
         id: str,
         targets: Mapping[str, Target],
         triggers: Mapping[str, AnyTrigger],
-    ) -> FlowNode:
-        return FlowNode(
+    ) -> ResolvedNode:
+        return ResolvedNode(
             id=id,
             target=targets[self.target] if isinstance(self.target, str) else self.target,
             args=self.args,
             envs=self.envs,
-            trigger=(triggers[self.trigger] if isinstance(self.trigger, str) else self.trigger),
+            triggers=tuple(triggers[t] if isinstance(t, str) else t for t in self.triggers),
             color=self.color,
         )
 
 
-class Flow(Model):
-    nodes: dict[ID, FlowNode]
-    args: Args = {}
-    envs: Envs = {}
+class ResolvedFlow(Model):
+    nodes: dict[ID, ResolvedNode]
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to all nodes in this flow.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to all nodes in this flow.",
+        ),
+    ] = {}
+
+    @cached_property
+    def graph(self) -> DiGraph:
+        graph = DiGraph()
+
+        for id, node in self.nodes.items():
+            graph.add_node(id)
+            for t in node.triggers:
+                if isinstance(t, After):
+                    for predecessor_id in t.after:
+                        graph.add_edge(predecessor_id, id)
+
+        return graph
 
     def mermaid(self) -> str:
         lines = ["flowchart TD"]
@@ -179,38 +243,54 @@ class Flow(Model):
         for id, node in self.nodes.items():
             lines.append(f"{node.id}({id})")
 
-            match node.trigger:
-                case Once():
-                    pass
-                case After(after=after):
-                    for a in after:
-                        lines.append(f"{self.nodes[a].id} --> {node.id}")
-                case Restart(delay=delay):
-                    lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
-                case Watch(paths=paths):
-                    text = "\n".join(paths)
-                    h = md5("".join(paths))
-                    if h not in seen_watches:
-                        seen_watches.add(h)
-                        lines.append(f'w_{h}[("{text}")]')
-                    lines.append(f"w_{h} -->|👁| {node.id}")
-                case never:
-                    assert_never(never)
+            for t in node.triggers:
+                match t:
+                    case Once():
+                        pass
+                    case After(after=after):
+                        for a in after:
+                            lines.append(f"{self.nodes[a].id} --> {node.id}")
+                    case Restart(delay=delay):
+                        lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
+                    case Watch(watch=paths):
+                        text = "\n".join(paths)
+                        h = md5("".join(paths))
+                        if h not in seen_watches:
+                            seen_watches.add(h)
+                            lines.append(f'w_{h}[("{text}")]')
+                        lines.append(f"w_{h} -->|👁| {node.id}")
+                    case never:
+                        assert_never(never)
 
         return "\n  ".join(lines).strip()
 
 
-class UnresolvedFlow(Model):
-    nodes: dict[ID, UnresolvedFlowNode]
-    args: Args = {}
-    envs: Envs = {}
+class Flow(Model):
+    nodes: Annotated[
+        Mapping[ID, Node],
+        Field(
+            description="Mapping of IDs to nodes.",
+        ),
+    ] = {}
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to all nodes in this flow.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to all nodes in this flow.",
+        ),
+    ] = {}
 
     def resolve(
         self,
         targets: Mapping[ID, Target],
         triggers: Mapping[ID, AnyTrigger],
-    ) -> Flow:
-        return Flow(
+    ) -> ResolvedFlow:
+        return ResolvedFlow(
             nodes={id: node.resolve(id, targets, triggers) for id, node in self.nodes.items()},
             args=self.args,
             envs=self.envs,
@@ -218,9 +298,24 @@ class UnresolvedFlow(Model):
 
 
 class Config(Model):
-    flows: dict[ID, UnresolvedFlow] = {}
-    targets: dict[ID, Target] = {}
-    triggers: dict[ID, AnyTrigger] = {}
+    flows: Annotated[
+        Mapping[ID, Flow],
+        Field(
+            description="A mapping of IDs to flows.",
+        ),
+    ] = {}
+    targets: Annotated[
+        Mapping[ID, Target],
+        Field(
+            description="A mapping of IDs to targets.",
+        ),
+    ] = {}
+    triggers: Annotated[
+        Mapping[ID, AnyTrigger],
+        Field(
+            description="A mapping of IDs to triggers.",
+        ),
+    ] = {}
 
     @classmethod
     def from_file(cls, file: Path) -> Config:
@@ -231,5 +326,5 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self) -> Mapping[ID, Flow]:
+    def resolve(self) -> Mapping[ID, ResolvedFlow]:
         return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}

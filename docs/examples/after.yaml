@@ -9,16 +9,16 @@ flows:
         target: sleep-and-echo
       D:
         target: sleep-and-echo
-        trigger:
-          after: ["A", "B"]
+        triggers:
+        - after: [A, B]
       E:
         target: sleep-and-echo
-        trigger:
-          after: ["C"]
+        triggers:
+        - after: [C]
       F:
         target: sleep-and-echo
-        trigger:
-          after: ["D", "E"]
+        triggers:
+        - after: [D, E]
 
 targets:
   sleep-and-echo:
