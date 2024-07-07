@@ -52,13 +52,13 @@ class Target(Model):
     args: Annotated[
         Args,
         Field(
-            description="Template arguments to apply to this target by default",
+            description="Template arguments to apply to this target by default.",
         ),
     ] = {}
     envs: Annotated[
         Envs,
         Field(
-            description="Environment variables to apply to this target by default",
+            description="Environment variables to apply to this target by default.",
         ),
     ] = {}
 
@@ -131,12 +131,22 @@ AnyTrigger = Union[
 ]
 
 
-class ResolvedFlowNode(Model):
+class ResolvedNode(Model):
     id: str
 
     target: Target
-    args: Args = {}
-    envs: Envs = {}
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to this node.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to this node.",
+        ),
+    ] = {}
 
     triggers: tuple[AnyTrigger, ...] = (Once(),)
 
@@ -147,12 +157,32 @@ class ResolvedFlowNode(Model):
         return md5(self.model_dump_json(exclude={"color"}).encode())
 
 
-class FlowNode(Model):
-    target: Target | ID
-    args: Args = {}
-    envs: Envs = {}
+class Node(Model):
+    target: Annotated[
+        Target | ID,
+        Field(
+            description="The target to run for this node. It may either be the name of a pre-defined target, or a full target definition.",
+        ),
+    ]
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to this node.",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to this node.",
+        ),
+    ] = {}
 
-    triggers: tuple[AnyTrigger | ID, ...] = (Once(),)
+    triggers: Annotated[
+        tuple[AnyTrigger | ID, ...],
+        Field(
+            description="The list of triggers for this node. Each trigger may be the name of a pre-defined trigger, or a full trigger definition.",
+        ),
+    ] = (Once(),)
 
     color: Annotated[
         str,
@@ -167,8 +197,8 @@ class FlowNode(Model):
         id: str,
         targets: Mapping[str, Target],
         triggers: Mapping[str, AnyTrigger],
-    ) -> ResolvedFlowNode:
-        return ResolvedFlowNode(
+    ) -> ResolvedNode:
+        return ResolvedNode(
             id=id,
             target=targets[self.target] if isinstance(self.target, str) else self.target,
             args=self.args,
@@ -179,7 +209,7 @@ class FlowNode(Model):
 
 
 class ResolvedFlow(Model):
-    nodes: dict[ID, ResolvedFlowNode]
+    nodes: dict[ID, ResolvedNode]
     args: Args = {}
     envs: Envs = {}
 
@@ -226,7 +256,7 @@ class ResolvedFlow(Model):
 
 
 class Flow(Model):
-    nodes: dict[ID, FlowNode]
+    nodes: dict[ID, Node]
     args: Args = {}
     envs: Envs = {}
 
@@ -244,19 +274,19 @@ class Flow(Model):
 
 class Config(Model):
     flows: Annotated[
-        dict[ID, Flow],
+        Mapping[ID, Flow],
         Field(
             description="A mapping of IDs to flows.",
         ),
     ] = {}
     targets: Annotated[
-        dict[ID, Target],
+        Mapping[ID, Target],
         Field(
             description="A mapping of IDs to targets.",
         ),
     ] = {}
     triggers: Annotated[
-        dict[ID, AnyTrigger],
+        Mapping[ID, AnyTrigger],
         Field(
             description="A mapping of IDs to triggers.",
         ),

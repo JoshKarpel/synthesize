@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from synthesize.config import Envs, ResolvedFlowNode, Target, random_color
+from synthesize.config import Envs, ResolvedNode, Target, random_color
 from synthesize.execution import Execution
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 
@@ -11,7 +11,7 @@ color = random_color()
 
 
 async def test_execution_lifecycle(tmp_path: Path) -> None:
-    node = ResolvedFlowNode(
+    node = ResolvedNode(
         id="foo",
         target=Target(commands="echo 'hi'"),
         color=color,
@@ -53,7 +53,7 @@ async def test_execution_lifecycle(tmp_path: Path) -> None:
 
 
 async def test_termination_before_completion(tmp_path: Path) -> None:
-    node = ResolvedFlowNode(
+    node = ResolvedNode(
         id="foo",
         target=Target(commands="sleep 10 && echo 'hi'"),
         color=color,
@@ -90,7 +90,7 @@ async def test_termination_before_completion(tmp_path: Path) -> None:
 
 
 async def test_termination_after_completion(tmp_path: Path) -> None:
-    node = ResolvedFlowNode(
+    node = ResolvedNode(
         id="foo",
         target=Target(commands="echo 'hi'"),
         color=color,
@@ -114,7 +114,7 @@ async def test_termination_after_completion(tmp_path: Path) -> None:
 
 
 async def test_execution_kill(tmp_path: Path) -> None:
-    node = ResolvedFlowNode(
+    node = ResolvedNode(
         id="foo",
         target=Target(commands="sleep 10 && echo 'hi'"),
         color=color,
@@ -151,7 +151,7 @@ async def test_execution_kill(tmp_path: Path) -> None:
 
 
 async def test_kill_after_completion(tmp_path: Path) -> None:
-    node = ResolvedFlowNode(
+    node = ResolvedNode(
         id="foo",
         target=Target(commands="echo 'hi'"),
         color=color,
@@ -178,7 +178,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
     ("node", "envs", "expected"),
     (
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo $FORCE_COLOR"),
                 color=color,
@@ -187,7 +187,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             "1",
         ),
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo $COLUMNS"),
                 color=color,
@@ -196,7 +196,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             "111",  # set in test body below
         ),
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo $SYNTH_NODE_ID"),
                 color=color,
@@ -205,7 +205,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             "foo",
         ),
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo $FOO"),
                 envs=Envs({"FOO": "bar"}),
@@ -215,7 +215,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             "bar",
         ),
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo $FOO"),
                 color=color,
@@ -224,7 +224,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             "baz",
         ),
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo $FOO", envs={"FOO": "bar"}),
                 color=color,
@@ -233,7 +233,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
             "bar",
         ),
         (
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(
                     commands="echo $A $B $C",
@@ -260,7 +260,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
 )
 async def test_envs(
     tmp_path: Path,
-    node: ResolvedFlowNode,
+    node: ResolvedNode,
     envs: Envs,
     expected: str,
 ) -> None:

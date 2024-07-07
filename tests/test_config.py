@@ -9,10 +9,10 @@ from synthesize.config import (
     Args,
     Config,
     Flow,
-    FlowNode,
+    Node,
     Once,
     ResolvedFlow,
-    ResolvedFlowNode,
+    ResolvedNode,
     Restart,
     Target,
     random_color,
@@ -121,7 +121,7 @@ color = random_color()
     ("unresolved_node", "id", "targets", "triggers", "expected"),
     (
         (
-            FlowNode(
+            Node(
                 target=Target(commands="echo"),
                 triggers=[Once()],
                 color=color,
@@ -129,7 +129,7 @@ color = random_color()
             "foo",
             {},
             {},
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
                 triggers=[Once()],
@@ -137,7 +137,7 @@ color = random_color()
             ),
         ),
         (
-            FlowNode(
+            Node(
                 target="t",
                 triggers=[Once()],
                 color=color,
@@ -145,7 +145,7 @@ color = random_color()
             "foo",
             {"t": Target(commands="echo")},
             {},
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
                 triggers=[Once()],
@@ -153,7 +153,7 @@ color = random_color()
             ),
         ),
         (
-            FlowNode(
+            Node(
                 target=Target(commands="echo"),
                 triggers=["r"],
                 color=color,
@@ -161,7 +161,7 @@ color = random_color()
             "foo",
             {},
             {"r": Once()},
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
                 triggers=[Once()],
@@ -169,7 +169,7 @@ color = random_color()
             ),
         ),
         (
-            FlowNode(
+            Node(
                 target="t",
                 triggers=["r"],
                 color=color,
@@ -177,7 +177,7 @@ color = random_color()
             "foo",
             {"t": Target(commands="echo")},
             {"r": Once()},
-            ResolvedFlowNode(
+            ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
                 triggers=[Once()],
@@ -187,11 +187,11 @@ color = random_color()
     ),
 )
 def test_resolve_flow_node(
-    unresolved_node: FlowNode,
+    unresolved_node: Node,
     id: str,
     targets: dict[str, Target],
     triggers: dict[str, AnyTrigger],
-    expected: ResolvedFlowNode,
+    expected: ResolvedNode,
 ) -> None:
     assert unresolved_node.resolve(id, targets, triggers) == expected
 
@@ -202,7 +202,7 @@ def test_resolve_flow_node(
         (
             Flow(
                 nodes={
-                    "foo": FlowNode(
+                    "foo": Node(
                         target=Target(commands="echo"),
                         triggers=[Once()],
                         color=color,
@@ -213,7 +213,7 @@ def test_resolve_flow_node(
             {},
             ResolvedFlow(
                 nodes={
-                    "foo": ResolvedFlowNode(
+                    "foo": ResolvedNode(
                         id="foo",
                         target=Target(commands="echo"),
                         triggers=[Once()],
@@ -225,7 +225,7 @@ def test_resolve_flow_node(
         (
             Flow(
                 nodes={
-                    "foo": FlowNode(
+                    "foo": Node(
                         target="t",
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
@@ -240,7 +240,7 @@ def test_resolve_flow_node(
             {"r": Restart()},
             ResolvedFlow(
                 nodes={
-                    "foo": ResolvedFlowNode(
+                    "foo": ResolvedNode(
                         id="foo",
                         target=Target(commands="echo"),
                         args={"foo": "bar"},
@@ -272,7 +272,7 @@ def test_resolve_flow(
                 flows={
                     "flow": Flow(
                         nodes={
-                            "foo": FlowNode(
+                            "foo": Node(
                                 target="t",
                                 args={"foo": "bar"},
                                 envs={"FOO": "BAR"},
@@ -290,7 +290,7 @@ def test_resolve_flow(
             {
                 "flow": ResolvedFlow(
                     nodes={
-                        "foo": ResolvedFlowNode(
+                        "foo": ResolvedNode(
                             id="foo",
                             target=Target(commands="echo"),
                             args={"foo": "bar"},

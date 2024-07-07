@@ -89,6 +89,7 @@ extra:
 
 nav:
   - Introduction: index.md
+  - config.md
   - flows.md
   - targets.md
   - triggers.md

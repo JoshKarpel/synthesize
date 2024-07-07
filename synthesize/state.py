@@ -7,7 +7,7 @@ from enum import Enum
 
 from networkx import DiGraph, ancestors, descendants
 
-from synthesize.config import After, ResolvedFlow, ResolvedFlowNode
+from synthesize.config import After, ResolvedFlow, ResolvedNode
 
 
 @dataclass(frozen=True)
@@ -33,13 +33,13 @@ class FlowState:
             statuses={id: Status.Pending for id in graph.nodes},
         )
 
-    def nodes_by_status(self) -> Mapping[Status, Collection[ResolvedFlowNode]]:
+    def nodes_by_status(self) -> Mapping[Status, Collection[ResolvedNode]]:
         d = defaultdict(list)
         for id, s in self.statuses.items():
             d[s].append(self.flow.nodes[id])
         return d
 
-    def ready_nodes(self) -> Collection[ResolvedFlowNode]:
+    def ready_nodes(self) -> Collection[ResolvedNode]:
         return tuple(
             self.flow.nodes[id]
             for id in self.graph.nodes
@@ -54,32 +54,32 @@ class FlowState:
             )
         )
 
-    def mark_success(self, *nodes: ResolvedFlowNode) -> None:
+    def mark_success(self, *nodes: ResolvedNode) -> None:
         self.mark(*nodes, status=Status.Succeeded)
 
-    def mark_failure(self, *nodes: ResolvedFlowNode) -> None:
+    def mark_failure(self, *nodes: ResolvedNode) -> None:
         self.mark(*nodes, status=Status.Failed)
 
-    def mark_pending(self, *nodes: ResolvedFlowNode) -> None:
+    def mark_pending(self, *nodes: ResolvedNode) -> None:
         self.mark(*nodes, status=Status.Pending)
 
-    def mark_running(self, *nodes: ResolvedFlowNode) -> None:
+    def mark_running(self, *nodes: ResolvedNode) -> None:
         self.mark(*nodes, status=Status.Running)
 
-    def mark(self, *nodes: ResolvedFlowNode, status: Status) -> None:
+    def mark(self, *nodes: ResolvedNode, status: Status) -> None:
         for node in nodes:
             self.statuses[node.id] = status
 
-    def children(self, node: ResolvedFlowNode) -> Collection[ResolvedFlowNode]:
+    def children(self, node: ResolvedNode) -> Collection[ResolvedNode]:
         return tuple(self.flow.nodes[id] for id in self.graph.successors(node.id))
 
-    def descendants(self, node: ResolvedFlowNode) -> Collection[ResolvedFlowNode]:
+    def descendants(self, node: ResolvedNode) -> Collection[ResolvedNode]:
         return tuple(self.flow.nodes[id] for id in descendants(self.graph, node.id))
 
     def all_done(self) -> bool:
         return all(status is Status.Succeeded for status in self.statuses.values())
 
-    def nodes(self) -> Iterator[ResolvedFlowNode]:
+    def nodes(self) -> Iterator[ResolvedNode]:
         yield from self.flow.nodes.values()
 
 

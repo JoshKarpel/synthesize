@@ -1,3 +1,5 @@
 # Flows
 
-@schema(synthesize.config, Config)
+@schema(synthesize.config, Flow)
+
+@schema(synthesize.config, Node)

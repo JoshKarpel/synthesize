@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from rich.console import Console
 from watchfiles import awatch
 
-from synthesize.config import ResolvedFlow, ResolvedFlowNode, Restart, Watch
+from synthesize.config import ResolvedFlow, ResolvedNode, Restart, Watch
 from synthesize.execution import Execution
 from synthesize.messages import (
     ExecutionCompleted,
@@ -153,8 +153,6 @@ class Orchestrator:
                     )
 
 
-async def watch(
-    node: ResolvedFlowNode, paths: Iterable[str | Path], events: Queue[Message]
-) -> None:
+async def watch(node: ResolvedNode, paths: Iterable[str | Path], events: Queue[Message]) -> None:
     async for changes in awatch(*paths):
         await events.put(WatchPathChanged(node=node, changes=changes))
