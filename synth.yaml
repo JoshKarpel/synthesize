@@ -34,5 +34,6 @@ triggers:
     - synthesize/
     - tests/
     - docs/examples/
+    - docs/hooks/
     - pyproject.toml
     - .coveragerc

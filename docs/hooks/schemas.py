@@ -43,63 +43,75 @@ def indent(lines: Iterator[str]) -> Iterator[str]:
 
 
 def schema_lines(
-    schema: Schema | Reference, key: str | None, defs: Mapping[str, Schema]
+    schema_or_ref: Schema | Reference, key: str | None, defs: Mapping[str, Schema]
 ) -> Iterator[str]:
-    schema = ref_to_schema(schema, defs)
+    schema = ref_to_schema(schema_or_ref, defs)
 
     dt = italic(display_type(schema, defs))
 
+    st = schema.title
+    assert st is not None
+
     if schema.type in {DataType.STRING, DataType.NUMBER, DataType.BOOLEAN}:
-        t = mono(schema.title.lower()) if schema.title else ""
+        t = mono(st.lower()) if st else ""
         default = f" (Default: {mono(repr(schema.default))}) " if not schema.required else " "
         yield f"- {t} {dt} {default} {schema.description}"
     elif schema.type is DataType.ARRAY:
-        t = mono(schema.title.lower()) if schema.title else ""
+        t = mono(st.lower()) if st else ""
         yield f"- {t} {dt} {schema.description}"
     elif schema.type is DataType.OBJECT:
         default = (
             f" (Default: {mono(repr(schema.default))}) " if key and not schema.required else " "
         )
-        yield f"- {key or schema.title.title()} {dt} {default} {schema.description or ''}"
+        yield f"- {key or st.title()} {dt} {default} {schema.description or ''}"
         if not schema.properties:
             return
-        for key, prop in schema.properties.items():
-            yield from indent(schema_lines(prop, mono(key), defs))
+        for k, prop in schema.properties.items():
+            yield from indent(schema_lines(prop, mono(k), defs))
     elif schema.type is None:
         if schema.anyOf:
-            yield f"- {mono(schema.title.lower())} {dt} {schema.description}"
+            yield f"- {mono(st.lower())} {dt} {schema.description}"
         else:
             raise NotImplementedError(
-                f"Type {schema.type} not implemented. Appeared in the schema for {schema.title}: {schema!r}."
+                f"Type {schema.type} not implemented. Appeared in the schema for {st}: {schema!r}."
             )
     else:
         raise NotImplementedError(
-            f"Type {schema.type} not implemented. Appeared in the schema for {schema.title}: {schema!r}."
+            f"Type {schema.type} not implemented. Appeared in the schema for {st}: {schema!r}."
         )
 
 
-def ref_to_schema(schema, defs):
-    if isinstance(schema, Reference):
+def ref_to_schema(schema_or_ref: Schema | Reference, defs: Mapping[str, Schema]) -> Schema:
+    if isinstance(schema_or_ref, Reference):
         try:
-            schema = defs[schema.ref.removeprefix("#/$defs/")]
+            return defs[schema_or_ref.ref.removeprefix("#/$defs/")]
         except KeyError:
-            logger.error(f"Could not find reference {schema.ref!r} in {defs.keys()!r}")
+            logger.error(f"Could not find reference {schema_or_ref.ref!r} in {defs.keys()!r}")
             raise
-    return schema
+    else:
+        return schema_or_ref
 
 
-def display_type(schema: Schema, defs: Mapping[str, Schema]) -> str:
+def display_type(schema: Schema | Reference, defs: Mapping[str, Schema]) -> str:
     schema = ref_to_schema(schema, defs)
 
-    if schema.type in {DataType.STRING, DataType.NUMBER, DataType.BOOLEAN, DataType.OBJECT}:
-        return schema.type.value
-    elif schema.type is DataType.ARRAY:
+    st = schema.type
+
+    if isinstance(st, DataType) and st in {
+        DataType.STRING,
+        DataType.NUMBER,
+        DataType.BOOLEAN,
+        DataType.OBJECT,
+    }:
+        return str(st.value)
+    elif st is DataType.ARRAY:
+        assert schema.items is not None
         return f"array[{display_type(schema.items, defs)}]"
-    elif schema.type is None:
-        options = [ref_to_schema(s, defs) for s in schema.anyOf]
-        return " | ".join(s.title or s.type for s in options)
+    elif st is None and (options := schema.anyOf) is not None:
+        schemas = [ref_to_schema(s, defs) for s in options]
+        return " | ".join(s.title or str(s.type.value) for s in schemas)  # type: ignore[union-attr]
     else:
-        raise NotImplementedError(f"Type {schema.type} not implemented. Schema: {schema!r}.")
+        raise NotImplementedError(f"Type {st} not implemented. Schema: {schema!r}.")
 
 
 def italic(s: str) -> str:

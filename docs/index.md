@@ -16,6 +16,16 @@ These can all coexist as part of same flow, and can even be combined for a singl
 allowing for complex nodes like
 ["restart target `W` if it exits or if file `F` changes"](./triggers.md#example-restarting-on-completion-or-config-changes).
 
+## Features
+
+- Target and trigger definitions can be factored out and shared across multiple nodes and flows.
+- Targets are just shell commands, so you can use any tools you'd like. Synthesize works with your existing tools, it doesn't replace them.
+- Nodes can have multiple triggers, allowing you to express complex triggering conditions.
+- All command output is combined in a single output stream, with each node's output prefixed with a timestamp and its name.
+- You can generate [Mermaid](https://mermaid.js.org/) diagrams of your flows for debugging and documentation.
+
+## Examples
+
 As an example, here is Synthesize's own `synth.yaml` configuration file:
 
 ```yaml
@@ -23,6 +33,22 @@ As an example, here is Synthesize's own `synth.yaml` configuration file:
 ```
 
 @mermaid(synth.yaml)
+
+## Installation
+
+Synthesize is [available on PyPI](https://pypi.org/project/synthesize/).
+
+We recommend installing Synthesize via `pipx`:
+
+```bash
+pipx install synthesize
+```
+
+Then run
+```
+synth --help
+```
+to get started.
 
 ## Inspirations
 
