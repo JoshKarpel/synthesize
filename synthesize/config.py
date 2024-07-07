@@ -266,7 +266,12 @@ class ResolvedFlow(Model):
 
 
 class Flow(Model):
-    nodes: Mapping[ID, Node] = {}
+    nodes: Annotated[
+        Mapping[ID, Node],
+        Field(
+            description="Mapping of IDs to nodes.",
+        ),
+    ] = {}
     args: Annotated[
         Args,
         Field(

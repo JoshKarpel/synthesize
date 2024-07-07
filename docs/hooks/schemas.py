@@ -42,6 +42,9 @@ def indent(lines: Iterator[str]) -> Iterator[str]:
     return (INDENT + l for l in lines)
 
 
+sep = "○"
+
+
 def schema_lines(
     schema_or_ref: Schema | Reference, key: str | None, defs: Mapping[str, Schema]
 ) -> Iterator[str]:
@@ -55,22 +58,22 @@ def schema_lines(
     if schema.type in {DataType.STRING, DataType.NUMBER, DataType.BOOLEAN}:
         t = mono(st.lower()) if st else ""
         default = f" (Default: {mono(repr(schema.default))}) " if not schema.required else " "
-        yield f"- {t} {dt} {default} {schema.description}"
+        yield f"- {t} {dt} {default} {sep if schema.description else ''} {schema.description}"
     elif schema.type is DataType.ARRAY:
         t = mono(st.lower()) if st else ""
-        yield f"- {t} {dt} {schema.description}"
+        yield f"- {t} {dt} {sep if schema.description else ''} {schema.description}"
     elif schema.type is DataType.OBJECT:
         default = (
             f" (Default: {mono(repr(schema.default))}) " if key and not schema.required else " "
         )
-        yield f"- {key or st.title()} {dt} {default} {schema.description or ''}"
+        yield f"- {key or st.title()} {dt} {default} {sep if schema.description else ''} {schema.description or ''}"
         if not schema.properties:
             return
         for k, prop in schema.properties.items():
             yield from indent(schema_lines(prop, mono(k), defs))
     elif schema.type is None:
         if schema.anyOf:
-            yield f"- {mono(st.lower())} {dt} {schema.description}"
+            yield f"- {mono(st.lower())} {dt} {sep if schema.description else ''} {schema.description}"
         else:
             raise NotImplementedError(
                 f"Type {schema.type} not implemented. Appeared in the schema for {st}: {schema!r}."
