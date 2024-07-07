@@ -10,7 +10,7 @@ Synthesize has a wide variety of triggers:
 - Target `B` should run after target `A` runs.
 - Target `W` should run every time file `F` changes.
 - Target `R` should be restarted if it ever exits.
-- Target `O` should run only once.
+- Target `O` should run once when the flow starts.
 
 These can all coexist as part of same flow, and can even be combined for a single target,
 allowing for complex nodes like
@@ -22,6 +22,7 @@ allowing for complex nodes like
 - Targets are just shell commands, so you can use any tools you'd like. Synthesize works with your existing tools, it doesn't replace them.
 - Nodes can have multiple triggers, allowing you to express complex triggering conditions.
 - All command output is combined in a single output stream, with each node's output prefixed with a timestamp and its name.
+- The current time and the status of each node is displayed at the bottom of your terminal.
 - You can generate [Mermaid](https://mermaid.js.org/) diagrams of your flows for debugging and documentation.
 
 ## Examples
