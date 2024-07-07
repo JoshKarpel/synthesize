@@ -20,6 +20,8 @@ allowing for complex nodes like
 
 - Target and trigger definitions can be factored out and shared across multiple nodes and flows.
 - Targets are just shell commands, so you can use any tools you'd like. Synthesize works with your existing tools, it doesn't replace them.
+- Targets can be parameterized with arguments (each target is actually a [Jinja template](https://jinja.palletsprojects.com/)) and environment variables.
+  Arguments and environment variables can also be provided at the flow and target levels (most specific wins).
 - Nodes can have multiple triggers, allowing you to express complex triggering conditions.
 - All command output is combined in a single output stream, with each node's output prefixed with a timestamp and its name.
 - The current time and the status of each node is displayed at the bottom of your terminal.

@@ -2,7 +2,7 @@
 
 ## `0.0.3`
 
-*Unreleased*
+Released `2024-07-07`
 
 ### Added
 
