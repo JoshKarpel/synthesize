@@ -4,13 +4,11 @@ flows:
       A:
         target: sleep-and-echo
         triggers:
-        - type: restart
-          delay: 3
+        - delay: 3
       B:
         target: sleep-and-echo
         triggers:
-        - type: restart
-          delay: 1
+        - delay: 1
 
 targets:
   sleep-and-echo:

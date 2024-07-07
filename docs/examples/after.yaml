@@ -1,4 +1,4 @@
-flows  :
+flows:
   default:
     nodes:
       A:

@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from rich.console import Console
 from watchfiles import awatch
 
-from synthesize.config import Flow, FlowNode, Restart, Watch
+from synthesize.config import ResolvedFlow, ResolvedFlowNode, Restart, Watch
 from synthesize.execution import Execution
 from synthesize.messages import (
     ExecutionCompleted,
@@ -24,7 +24,7 @@ from synthesize.state import FlowState, Status
 
 
 class Orchestrator:
-    def __init__(self, flow: Flow, console: Console):
+    def __init__(self, flow: ResolvedFlow, console: Console):
         self.flow = flow
         self.console = console
 
@@ -84,11 +84,11 @@ class Orchestrator:
                                 if self.state.statuses[node.id] is not Status.Waiting:
                                     self.state.mark(node, status=Status.Waiting)
 
-                                    def callback():
+                                    def waiting_to_pending() -> None:
                                         if self.state.statuses[node.id] is Status.Waiting:
                                             self.state.mark_pending(node)
 
-                                    get_running_loop().call_later(t.delay, callback)
+                                    get_running_loop().call_later(t.delay, waiting_to_pending)
                                 break
                         else:
                             if exit_code == 0:
@@ -147,12 +147,14 @@ class Orchestrator:
                     self.watchers[node.id] = create_task(
                         watch(
                             node=node,
-                            paths=trigger.paths,
+                            paths=trigger.watch,
                             events=self.inbox,
                         )
                     )
 
 
-async def watch(node: FlowNode, paths: Iterable[str | Path], events: Queue[Message]) -> None:
+async def watch(
+    node: ResolvedFlowNode, paths: Iterable[str | Path], events: Queue[Message]
+) -> None:
     async for changes in awatch(*paths):
         await events.put(WatchPathChanged(node=node, changes=changes))

@@ -10,11 +10,11 @@ from signal import SIGKILL, SIGTERM
 from stat import S_IEXEC
 from time import monotonic
 
-from synthesize.config import Args, Envs, FlowNode
+from synthesize.config import Args, Envs, ResolvedFlowNode
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 
 
-def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
+def write_script(node: ResolvedFlowNode, args: Args, tmp_dir: Path) -> Path:
     path = tmp_dir / f"{node.id}-{node.uid}"
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -35,7 +35,7 @@ def write_script(node: FlowNode, args: Args, tmp_dir: Path) -> Path:
 
 @dataclass(frozen=True)
 class Execution:
-    node: FlowNode
+    node: ResolvedFlowNode
 
     events: Queue[Message] = field(repr=False)
 
@@ -46,7 +46,7 @@ class Execution:
     @classmethod
     async def start(
         cls,
-        node: FlowNode,
+        node: ResolvedFlowNode,
         args: Args,
         envs: Envs,
         tmp_dir: Path,
@@ -136,7 +136,7 @@ class Execution:
         return self
 
 
-async def read_output(node: FlowNode, process: Process, events: Queue[Message]) -> None:
+async def read_output(node: ResolvedFlowNode, process: Process, events: Queue[Message]) -> None:
     if process.stdout is None:  # pragma: unreachable
         raise Exception(f"{process} does not have an associated stream reader")
 

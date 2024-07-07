@@ -5,11 +5,9 @@
 ### Once
 
 "Once" triggers run the node just one time during the flow.
-This is the default trigger.
+This is the default trigger, so it does not need to be specified.
 
 Use this trigger when a command needs to run only one time during a flow.
-
-@schema(synthesize.config.Once)
 
 ```yaml
 --8<-- "docs/examples/once.yaml"
@@ -23,6 +21,8 @@ Use this trigger when a command needs to run only one time during a flow.
 
 Use this trigger when a node depends on the output of another node.
 
+@schema(synthesize.config, After)
+
 ```yaml
 --8<-- "docs/examples/after.yaml"
 ```
@@ -34,6 +34,8 @@ Use this trigger when a node depends on the output of another node.
 "Restart" triggers run the node every time the node is completed.
 
 Use this trigger when you want to keep the node's command running.
+
+@schema(synthesize.config, Restart)
 
 ```yaml
 --8<-- "docs/examples/restart.yaml"
@@ -47,6 +49,8 @@ Use this trigger when you want to keep the node's command running.
 (directories are watched recursively).
 
 Use this trigger to run a node in reaction to changes in the filesystem.
+
+@schema(synthesize.config, Watch)
 
 ```yaml
 --8<-- "docs/examples/watch.yaml"

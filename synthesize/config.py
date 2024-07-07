@@ -8,7 +8,7 @@ from functools import cached_property
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Annotated, Literal, Union
+from typing import Annotated, Union
 
 from identify.identify import tags_from_path
 from jinja2 import Environment
@@ -31,21 +31,8 @@ Args = dict[
     ],
     object,
 ]
-Envs = dict[
-    Annotated[
-        str,
-        Field(
-            min_length=1,
-        ),
-    ],
-    str,
-]
-ID = Annotated[
-    str,
-    Field(
-        pattern=r"\w+",
-    ),
-]
+Envs = dict[Annotated[str, Field(min_length=1)], str]
+ID = Annotated[str, Field(pattern=r"\w+")]
 
 
 def random_color() -> str:
@@ -61,11 +48,23 @@ template_environment = Environment()
 
 
 class Target(Model):
-    commands: str = ""
-    args: Args = {}
-    envs: Envs = {}
+    commands: Annotated[str, Field(description="The commands to run for this target.")] = ""
+    args: Annotated[
+        Args,
+        Field(
+            description="Template arguments to apply to this target by default",
+        ),
+    ] = {}
+    envs: Annotated[
+        Envs,
+        Field(
+            description="Environment variables to apply to this target by default",
+        ),
+    ] = {}
 
-    executable: str = "sh -eu"
+    executable: Annotated[str, Field(description="The executable to run this target with.")] = (
+        "sh -eu"
+    )
 
     @field_validator("commands")
     @classmethod
@@ -92,18 +91,20 @@ class Target(Model):
 
 
 class Once(Model):
-    type: Literal["once"] = "once"
+    pass
 
 
 class After(Model):
-    type: Literal["after"] = "after"
-
-    after: Annotated[tuple[str, ...], Field(min_length=1)]
+    after: Annotated[
+        tuple[str, ...],
+        Field(
+            min_length=1,
+            description="The IDs of the nodes to wait for.",
+        ),
+    ]
 
 
 class Restart(Model):
-    type: Literal["restart"] = "restart"
-
     delay: Annotated[
         float,
         Field(
@@ -114,9 +115,12 @@ class Restart(Model):
 
 
 class Watch(Model):
-    type: Literal["watch"] = "watch"
-
-    paths: tuple[str, ...]
+    watch: Annotated[
+        tuple[str, ...],
+        Field(
+            description="The paths to watch for changes. Directories are watched recursively.",
+        ),
+    ]
 
 
 AnyTrigger = Union[
@@ -127,7 +131,7 @@ AnyTrigger = Union[
 ]
 
 
-class FlowNode(Model):
+class ResolvedFlowNode(Model):
     id: str
 
     target: Target
@@ -143,22 +147,28 @@ class FlowNode(Model):
         return md5(self.model_dump_json(exclude={"color"}).encode())
 
 
-class UnresolvedFlowNode(Model):
+class FlowNode(Model):
     target: Target | ID
     args: Args = {}
     envs: Envs = {}
 
     triggers: tuple[AnyTrigger | ID, ...] = (Once(),)
 
-    color: Annotated[str, Field(default_factory=random_color)]
+    color: Annotated[
+        str,
+        Field(
+            default_factory=random_color,
+            description="The color that will be used to help differentiate this node from others.",
+        ),
+    ]
 
     def resolve(
         self,
         id: str,
         targets: Mapping[str, Target],
         triggers: Mapping[str, AnyTrigger],
-    ) -> FlowNode:
-        return FlowNode(
+    ) -> ResolvedFlowNode:
+        return ResolvedFlowNode(
             id=id,
             target=targets[self.target] if isinstance(self.target, str) else self.target,
             args=self.args,
@@ -168,8 +178,8 @@ class UnresolvedFlowNode(Model):
         )
 
 
-class Flow(Model):
-    nodes: dict[ID, FlowNode]
+class ResolvedFlow(Model):
+    nodes: dict[ID, ResolvedFlowNode]
     args: Args = {}
     envs: Envs = {}
 
@@ -202,7 +212,7 @@ class Flow(Model):
                             lines.append(f"{self.nodes[a].id} --> {node.id}")
                     case Restart(delay=delay):
                         lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
-                    case Watch(paths=paths):
+                    case Watch(watch=paths):
                         text = "\n".join(paths)
                         h = md5("".join(paths))
                         if h not in seen_watches:
@@ -215,8 +225,8 @@ class Flow(Model):
         return "\n  ".join(lines).strip()
 
 
-class UnresolvedFlow(Model):
-    nodes: dict[ID, UnresolvedFlowNode]
+class Flow(Model):
+    nodes: dict[ID, FlowNode]
     args: Args = {}
     envs: Envs = {}
 
@@ -224,8 +234,8 @@ class UnresolvedFlow(Model):
         self,
         targets: Mapping[ID, Target],
         triggers: Mapping[ID, AnyTrigger],
-    ) -> Flow:
-        return Flow(
+    ) -> ResolvedFlow:
+        return ResolvedFlow(
             nodes={id: node.resolve(id, targets, triggers) for id, node in self.nodes.items()},
             args=self.args,
             envs=self.envs,
@@ -233,9 +243,24 @@ class UnresolvedFlow(Model):
 
 
 class Config(Model):
-    flows: dict[ID, UnresolvedFlow] = {}
-    targets: dict[ID, Target] = {}
-    triggers: dict[ID, AnyTrigger] = {}
+    flows: Annotated[
+        dict[ID, Flow],
+        Field(
+            description="A mapping of IDs to flows.",
+        ),
+    ] = {}
+    targets: Annotated[
+        dict[ID, Target],
+        Field(
+            description="A mapping of IDs to targets.",
+        ),
+    ] = {}
+    triggers: Annotated[
+        dict[ID, AnyTrigger],
+        Field(
+            description="A mapping of IDs to triggers.",
+        ),
+    ] = {}
 
     @classmethod
     def from_file(cls, file: Path) -> Config:
@@ -246,5 +271,5 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self) -> Mapping[ID, Flow]:
+    def resolve(self) -> Mapping[ID, ResolvedFlow]:
         return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}

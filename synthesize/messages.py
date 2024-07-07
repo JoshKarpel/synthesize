@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from pydantic import Field
 from watchfiles import Change
 
-from synthesize.config import FlowNode
+from synthesize.config import ResolvedFlowNode
 from synthesize.model import Model
 
 
@@ -12,24 +12,24 @@ class Message(Model):
 
 
 class ExecutionStarted(Message):
-    node: FlowNode
+    node: ResolvedFlowNode
     pid: int
 
 
 class ExecutionCompleted(Message):
-    node: FlowNode
+    node: ResolvedFlowNode
     pid: int
     exit_code: int
     duration: timedelta
 
 
 class ExecutionOutput(Message):
-    node: FlowNode
+    node: ResolvedFlowNode
     text: str
 
 
 class WatchPathChanged(Message):
-    node: FlowNode
+    node: ResolvedFlowNode
     changes: set[tuple[Change, str]]
 
 

@@ -13,7 +13,7 @@ flows:
         target: docs
         triggers:
         - delay: 1
-        - paths:
+        - watch:
           - docs/hooks/
 
 targets:
@@ -31,8 +31,7 @@ targets:
 
 triggers:
   code-changes:
-    type: watch
-    paths:
+    watch:
     - synthesize/
     - tests/
     - docs/examples/

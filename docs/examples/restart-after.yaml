@@ -4,8 +4,7 @@ flows:
       A:
         target: sleep-and-echo
         triggers:
-        - type: restart
-          delay: 10
+        - delay: 10
       B:
         target: sleep-and-echo
         triggers:
