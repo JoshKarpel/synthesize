@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import signal
-from asyncio import Queue, Task, create_task, gather, sleep
+from asyncio import Queue, Task, create_task, gather, get_running_loop, sleep
 from collections.abc import Iterable
-from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -14,7 +12,6 @@ from watchfiles import awatch
 from synthesize.config import Flow, FlowNode, Restart, Watch
 from synthesize.execution import Execution
 from synthesize.messages import (
-    DoRestart,
     ExecutionCompleted,
     ExecutionStarted,
     Heartbeat,
@@ -23,8 +20,7 @@ from synthesize.messages import (
     WatchPathChanged,
 )
 from synthesize.renderer import Renderer
-from synthesize.state import FlowState
-from synthesize.utils import delay
+from synthesize.state import FlowState, Status
 
 
 class Orchestrator:
@@ -82,17 +78,23 @@ class Orchestrator:
                     self.state.mark_running(node)
 
                 case ExecutionCompleted(node=node, exit_code=exit_code):
-                    print("complete")
-                    for t in node.triggers:
-                        if isinstance(t, Restart):
-                            if self.state.statuses[node.id] is not Status.Waiting:
-                                self.state.mark_pending(node)
-                            break
-                    else:
-                        if exit_code == 0:
-                            self.state.mark_success(node)
+                    if self.state.statuses[node.id] is not Status.Pending:
+                        for t in node.triggers:
+                            if isinstance(t, Restart):
+                                if self.state.statuses[node.id] is not Status.Waiting:
+                                    self.state.mark(node, status=Status.Waiting)
+
+                                    def callback():
+                                        if self.state.statuses[node.id] is Status.Waiting:
+                                            self.state.mark_pending(node)
+
+                                    get_running_loop().call_later(t.delay, callback)
+                                break
                         else:
-                            self.state.mark_failure(node)
+                            if exit_code == 0:
+                                self.state.mark_success(node)
+                            else:
+                                self.state.mark_failure(node)
 
                     self.state.mark_pending(*self.state.children(node))
 
@@ -121,35 +123,22 @@ class Orchestrator:
 
     async def start_ready_targets(self, tmp_dir: Path) -> None:
         for node in self.state.ready_nodes():
-            print(node)
             if e := self.executions.get(node.id):
                 if not e.has_exited:
                     continue
 
-            async def start() -> None:
-                e = await Execution.start(
-                    node=node,
-                    args=self.flow.args,
-                    envs=self.flow.envs,
-                    tmp_dir=tmp_dir,
-                    width=self.console.width - self.renderer.prefix_width,
-                    events=self.inbox,
-                )
-                self.executions[node.id] = e
-                self.waiters[node.id] = create_task(e.wait())
+            self.state.mark(node, status=Status.Waiting)
 
-            # When restarting after first execution, delay
-            for t in node.triggers:
-                if isinstance(t, Restart) and node.id in self.executions:
-                    print("HI")
-                    # TODO: starting too many times with multiple triggers!
-                    self.state.mark(node, status=Status.Waiting)
-                    delay(t.delay, start)
-                    break
-            else:
-                print("ALSO HI?")
-                self.state.mark(node, status=Status.Waiting)
-                await start()
+            e = await Execution.start(
+                node=node,
+                args=self.flow.args,
+                envs=self.flow.envs,
+                tmp_dir=tmp_dir,
+                width=self.console.width - self.renderer.prefix_width,
+                events=self.inbox,
+            )
+            self.executions[node.id] = e
+            self.waiters[node.id] = create_task(e.wait())
 
     async def start_watchers(self) -> None:
         for node in self.flow.nodes.values():
@@ -167,71 +156,3 @@ class Orchestrator:
 async def watch(node: FlowNode, paths: Iterable[str | Path], events: Queue[Message]) -> None:
     async for changes in awatch(*paths):
         await events.put(WatchPathChanged(node=node, changes=changes))
-
-
-class Status(Enum):
-    Pending = "pending"
-    Waiting = "waiting"
-    Starting = "starting"
-    Running = "running"
-    Succeeded = "succeeded"
-    Failed = "failed"
-
-
-@dataclass(slots=True)
-class NodeState:
-    flow: Flow
-    node: FlowNode
-
-    tmp_dir: Path
-    width: int
-
-    state: Status = Status.Pending
-    execution: Execution | None = None
-    waiter: Task[None] | None = None
-    restart: Task[None] | None = None
-
-    inbox: Queue[Message] = field(default_factory=Queue)
-
-    async def handle_messages(self, message: Message) -> None:
-        while True:
-            match self.state, await self.inbox.get():
-                case Status.Pending, WatchPathChanged() | DoRestart():
-                    await self.start()
-                    self.state = Status.Starting
-                case Status.Starting, ExecutionStarted():
-                    self.state = Status.Running
-                case Status.Starting, _:
-                    pass
-                case Status.Running, ExecutionCompleted(exit_code=exit_code):
-                    self.state = Status.Succeeded if exit_code == 0 else Status.Failed
-                    for t in self.node.triggers:
-                        if isinstance(t, Restart):
-
-                            async def restart() -> None:
-                                await sleep(t.delay)
-                                await self.inbox.put(DoRestart())
-
-                            self.restart = create_task(restart())
-                            break
-                case state, message:
-                    raise Exception(f"Unhandled message {message} in state {state}")
-
-    async def start(self) -> None:
-        # TODO: what if it gets stuck?
-        if self.execution is not None:
-            self.execution.terminate()
-            await self.waiter
-
-        new_execution = await Execution.start(
-            node=self.node,
-            args=self.flow.args,
-            envs=self.flow.envs,
-            tmp_dir=self.tmp_dir,
-            width=self.width,
-            # width=self.console.width - self.renderer.prefix_width,
-            events=self.inbox,
-        )
-
-        self.execution = new_execution
-        self.waiter = create_task(new_execution.wait())

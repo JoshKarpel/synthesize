@@ -1,18 +1,18 @@
 flows:
   default:
     nodes:
-#      tests:
-#        target: tests
-#        triggers:
-#        - code-changes
-#      types:
-#        target: types
-#        triggers:
-#        - code-changes
+      tests:
+        target: tests
+        triggers:
+        - code-changes
+      types:
+        target: types
+        triggers:
+        - code-changes
       docs:
         target: docs
         triggers:
-        - delay: 5
+        - delay: 1
         - paths:
           - docs/hooks/
 

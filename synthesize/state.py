@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Iterator, Mapping
 from dataclasses import dataclass
+from enum import Enum
 
 from networkx import DiGraph, ancestors, descendants
 
 from synthesize.config import After, Flow, FlowNode
-from synthesize.orchestrator import Status
 
 
 @dataclass(frozen=True)
@@ -68,7 +68,6 @@ class FlowState:
 
     def mark(self, *nodes: FlowNode, status: Status) -> None:
         for node in nodes:
-            print("marking", node.id, status)
             self.statuses[node.id] = status
 
     def children(self, node: FlowNode) -> Collection[FlowNode]:
@@ -82,3 +81,12 @@ class FlowState:
 
     def nodes(self) -> Iterator[FlowNode]:
         yield from self.flow.nodes.values()
+
+
+class Status(Enum):
+    Pending = "pending"
+    Waiting = "waiting"
+    Starting = "starting"
+    Running = "running"
+    Succeeded = "succeeded"
+    Failed = "failed"
