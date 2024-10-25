@@ -1,5 +1,14 @@
 # Changelog
 
+## `0.0.4`
+
+Released `2024-10-24`
+
+### Fixed
+
+- [#79](https://github.com/JoshKarpel/synthesize/pull/79)
+  Fix a crash that could happen when a process exits while we are trying to terminate it.
+
 ## `0.0.3`
 
 Released `2024-07-07`
