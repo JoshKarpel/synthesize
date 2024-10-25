@@ -110,7 +110,11 @@ class Execution:
         if self.has_exited:
             return None
 
-        os.killpg(os.getpgid(self.process.pid), signal)
+        try:
+            os.killpg(os.getpgid(self.process.pid), signal)
+        except ProcessLookupError:
+            # process exited before we could send the signal
+            pass
 
     def terminate(self) -> None:
         self._send_signal(SIGTERM)
