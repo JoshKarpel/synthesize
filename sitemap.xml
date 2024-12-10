@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://www.synth.how/</loc>
+         <lastmod>2024-12-10</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://www.synth.how/changelog/</loc>
+         <lastmod>2024-12-10</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://www.synth.how/config/</loc>
+         <lastmod>2024-12-10</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://www.synth.how/flows/</loc>
+         <lastmod>2024-12-10</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://www.synth.how/targets/</loc>
+         <lastmod>2024-12-10</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://www.synth.how/triggers/</loc>
+         <lastmod>2024-12-10</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+</urlset>
