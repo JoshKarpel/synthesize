@@ -162,7 +162,7 @@ async def read_output(node: ResolvedNode, process: Process, events: Queue[Messag
             await events.put(
                 Debug(
                     node=node,
-                    text=f"Command output buffer size exceeded for {node.id}. Dropping command output buffer contents and continuing.",
+                    text=f"Command output buffer size exceeded for node {node.id!r}. Dropping command output buffer contents and continuing.",
                 )
             )
             continue
