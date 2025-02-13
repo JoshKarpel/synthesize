@@ -1,10 +1,11 @@
 from asyncio import Queue
+from asyncio.streams import _DEFAULT_LIMIT  # type: ignore[attr-defined]
 from pathlib import Path
 
 import pytest
 
 from synthesize.config import Envs, ResolvedNode, Target, random_color
-from synthesize.execution import Execution
+from synthesize.execution import OUTPUT_BUFFER_SIZE, Execution
 from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
 
 color = random_color()
@@ -281,3 +282,45 @@ async def test_envs(
 
     assert isinstance(msg, ExecutionOutput)
     assert msg.text == expected
+
+
+@pytest.mark.parametrize(
+    "line_length",
+    (
+        _DEFAULT_LIMIT - 1,
+        _DEFAULT_LIMIT,  # Default buffer size
+        _DEFAULT_LIMIT + 1,
+        OUTPUT_BUFFER_SIZE - 1,
+        OUTPUT_BUFFER_SIZE,  # Increased buffer size
+        OUTPUT_BUFFER_SIZE + 1,
+        2 * OUTPUT_BUFFER_SIZE,
+    ),
+)
+async def test_very_long_lines_dont_break_reader_but_might_not_be_emitted(
+    tmp_path: Path, line_length: int
+) -> None:
+    expected = "a" * line_length
+    node = ResolvedNode(
+        id="foo",
+        target=Target(commands=f"echo {expected}"),
+        color=color,
+    )
+
+    q: Queue[Message] = Queue()
+    ex = await Execution.start(
+        node=node,
+        args={},
+        envs={},
+        tmp_dir=tmp_path,
+        width=80,
+        events=q,
+    )
+
+    await ex.wait()
+
+    await q.get()
+    msg = await q.get()
+
+    if len(expected) <= OUTPUT_BUFFER_SIZE:
+        assert isinstance(msg, ExecutionOutput)
+        assert msg.text == expected
