@@ -1,0 +1,9 @@
+flows:
+  default:
+    nodes:
+      long:
+        target:
+          # https://stackoverflow.com/questions/3211891/creating-string-of-repeated-characters-in-shell-script
+          commands: |
+            head -c $(echo "1024 * 1024 + 5" | bc) < /dev/zero | tr '\0' '\141'
+            echo 'hi'

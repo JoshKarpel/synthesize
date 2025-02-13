@@ -15,6 +15,7 @@ from typing_extensions import assert_never
 from watchfiles import Change
 
 from synthesize.messages import (
+    Debug,
     ExecutionCompleted,
     ExecutionOutput,
     ExecutionStarted,
@@ -58,6 +59,9 @@ class Renderer:
             case ExecutionStarted() | ExecutionCompleted() | WatchPathChanged() as msg:
                 self.handle_lifecycle_message(msg)
 
+            case Debug() as msg:
+                self.handle_debug_message(msg)
+
         self.update(message)
 
     def info(self, event: Message) -> RenderableType:
@@ -100,7 +104,8 @@ class Renderer:
         )
 
     def render_prefix(
-        self, message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged
+        self,
+        message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged,
     ) -> str:
         return prefix_format.format_map(
             {"id": message.node.id, "timestamp": message.timestamp}
@@ -109,7 +114,7 @@ class Renderer:
     def handle_command_message(self, message: ExecutionOutput) -> None:
         prefix = Text(
             self.render_prefix(message),
-            style=Style(color=message.node.color),
+            style=Style(color=message.node.color if message.node else "red"),
         )
 
         body = Text.from_ansi(message.text)
@@ -162,6 +167,25 @@ class Renderer:
         )
 
         g = Table.grid()
+        g.add_row(prefix, body)
+
+        self.console.print(g)
+
+    def handle_debug_message(self, message: Debug) -> None:
+        g = Table.grid()
+
+        prefix = Text.from_markup(
+            prefix_format.format_map({"id": "DEBUG", "timestamp": message.timestamp}).ljust(
+                self.prefix_width
+            ),
+            style=Style(color="red", dim=True),
+        )
+
+        body = Text.assemble(
+            message.text,
+            style=Style(dim=True),
+        )
+
         g.add_row(prefix, body)
 
         self.console.print(g)
