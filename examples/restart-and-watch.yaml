@@ -1,0 +1,9 @@
+flows:
+  default:
+    nodes:
+      docs:
+        target:
+          commands: mkdocs serve --strict
+        triggers:
+        - delay: 1
+        - watch: ["docs/hooks/"]
