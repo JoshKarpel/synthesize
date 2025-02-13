@@ -50,7 +50,7 @@ plugins:
             show_if_no_docstring: false
             show_source: false
             members_order: source
-          import:
+          inventories:
             - https://docs.python.org/3/objects.inv
             - https://rich.readthedocs.io/en/stable/objects.inv
 
