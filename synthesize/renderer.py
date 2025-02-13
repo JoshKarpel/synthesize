@@ -15,6 +15,7 @@ from typing_extensions import assert_never
 from watchfiles import Change
 
 from synthesize.messages import (
+    Debug,
     ExecutionCompleted,
     ExecutionOutput,
     ExecutionStarted,
@@ -55,8 +56,11 @@ class Renderer:
             case ExecutionOutput() as msg:
                 self.handle_command_message(msg)
 
-            case ExecutionStarted() | ExecutionCompleted() | WatchPathChanged() as msg:
+            case ExecutionStarted() | ExecutionCompleted() | WatchPathChanged() | Debug() as msg:
                 self.handle_lifecycle_message(msg)
+
+            case _:
+                assert_never(message)
 
         self.update(message)
 
@@ -120,7 +124,7 @@ class Renderer:
         self.console.print(g)
 
     def handle_lifecycle_message(
-        self, message: ExecutionStarted | ExecutionCompleted | WatchPathChanged
+        self, message: ExecutionStarted | ExecutionCompleted | WatchPathChanged | Debug
     ) -> None:
         prefix = Text.from_markup(
             self.render_prefix(message),
@@ -152,6 +156,11 @@ class Renderer:
                     (node.id, node.color),
                     " due to detected changes: ",
                     changes,
+                )
+            case Debug(node=node, text=text):
+                parts = (
+                    "DEBUG ",
+                    text,
                 )
             case _:
                 assert_never(message)

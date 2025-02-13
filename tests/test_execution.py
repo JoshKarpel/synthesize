@@ -6,7 +6,13 @@ import pytest
 
 from synthesize.config import Envs, ResolvedNode, Target, random_color
 from synthesize.execution import OUTPUT_BUFFER_SIZE, Execution
-from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
+from synthesize.messages import (
+    Debug,
+    ExecutionCompleted,
+    ExecutionOutput,
+    ExecutionStarted,
+    Message,
+)
 
 color = random_color()
 
@@ -324,3 +330,7 @@ async def test_very_long_lines_dont_break_reader_but_might_not_be_emitted(
     if len(expected) <= OUTPUT_BUFFER_SIZE:
         assert isinstance(msg, ExecutionOutput)
         assert msg.text == expected
+    else:
+        assert isinstance(msg, Debug)
+        assert "buffer" in msg.text
+        assert node.id in msg.text

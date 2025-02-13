@@ -11,7 +11,13 @@ from stat import S_IEXEC
 from time import monotonic
 
 from synthesize.config import Args, Envs, ResolvedNode
-from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
+from synthesize.messages import (
+    Debug,
+    ExecutionCompleted,
+    ExecutionOutput,
+    ExecutionStarted,
+    Message,
+)
 
 OUTPUT_BUFFER_SIZE = 1 * 1024 * 1024  # 1 MiB, default is 64 KiB
 
@@ -153,7 +159,14 @@ async def read_output(node: ResolvedNode, process: Process, events: Queue[Messag
         except ValueError:
             # Arises from a LimitOverrunError in readline(),
             # which is raised when the reader's internal buffer size is exceeded.
+            await events.put(
+                Debug(
+                    node=node,
+                    text=f"Command output buffer size exceeded for {node.id}. Dropping command output buffer contents and continuing.",
+                )
+            )
             continue
+
         if not line:
             break
 
