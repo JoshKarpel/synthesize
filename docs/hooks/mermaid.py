@@ -17,7 +17,7 @@ def on_page_markdown(
         if match := re.match(r"@mermaid\(([\w\.\/\-]+)\)", line):
             lines.append("```mermaid")
             cmd = subprocess.run(
-                ("synth", "--mermaid", "--config", match.group(1)),
+                ("uv", "run", "-m", "synthesize", "--mermaid", "--config", match.group(1)),
                 capture_output=True,
                 text=True,
                 check=False,
