@@ -33,6 +33,11 @@ class WatchPathChanged(Message):
     changes: set[tuple[Change, str]]
 
 
+class Debug(Message):
+    node: ResolvedNode | None
+    text: str
+
+
 class Heartbeat(Message):
     pass
 

@@ -11,7 +11,15 @@ from stat import S_IEXEC
 from time import monotonic
 
 from synthesize.config import Args, Envs, ResolvedNode
-from synthesize.messages import ExecutionCompleted, ExecutionOutput, ExecutionStarted, Message
+from synthesize.messages import (
+    Debug,
+    ExecutionCompleted,
+    ExecutionOutput,
+    ExecutionStarted,
+    Message,
+)
+
+OUTPUT_BUFFER_SIZE = 1 * 1024 * 1024  # 1 MiB, default is 64 KiB
 
 
 def write_script(node: ResolvedNode, args: Args, tmp_dir: Path) -> Path:
@@ -73,6 +81,7 @@ class Execution:
                 "SYNTH_NODE_ID": node.id,
             },
             preexec_fn=os.setsid,
+            limit=OUTPUT_BUFFER_SIZE,
         )
 
         reader = create_task(
@@ -145,7 +154,19 @@ async def read_output(node: ResolvedNode, process: Process, events: Queue[Messag
         raise Exception(f"{process} does not have an associated stream reader")
 
     while True:
-        line = await process.stdout.readline()
+        try:
+            line = await process.stdout.readline()
+        except ValueError:
+            # Arises from a LimitOverrunError in readline(),
+            # which is raised when the reader's internal buffer size is exceeded.
+            await events.put(
+                Debug(
+                    node=node,
+                    text=f"Command output buffer size exceeded for node {node.id!r}. Dropping command output buffer contents and continuing.",
+                )
+            )
+            continue
+
         if not line:
             break
 

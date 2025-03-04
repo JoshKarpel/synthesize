@@ -1,5 +1,14 @@
 # Changelog
 
+## `0.0.5`
+
+Released `2025-02-12`
+
+### Fixed
+
+- [#112](https://github.com/JoshKarpel/synthesize/pull/112)
+  Fix a crash that could happen when a process outputs too much data without a newline.
+
 ## `0.0.4`
 
 Released `2024-10-24`
