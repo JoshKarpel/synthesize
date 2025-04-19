@@ -5,6 +5,7 @@ import pytest
 from rich.style import Style
 
 from synthesize.config import (
+    After,
     AnyTrigger,
     Args,
     Config,
@@ -15,6 +16,7 @@ from synthesize.config import (
     ResolvedNode,
     Restart,
     Target,
+    Watch,
     random_color,
 )
 
@@ -123,7 +125,7 @@ color = random_color()
         (
             Node(
                 target=Target(commands="echo"),
-                triggers=[Once()],
+                triggers=(Once(),),
                 color=color,
             ),
             "foo",
@@ -132,14 +134,14 @@ color = random_color()
             ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
-                triggers=[Once()],
+                triggers=(Once(),),
                 color=color,
             ),
         ),
         (
             Node(
                 target="t",
-                triggers=[Once()],
+                triggers=(Once(),),
                 color=color,
             ),
             "foo",
@@ -148,14 +150,14 @@ color = random_color()
             ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
-                triggers=[Once()],
+                triggers=(Once(),),
                 color=color,
             ),
         ),
         (
             Node(
                 target=Target(commands="echo"),
-                triggers=["r"],
+                triggers=("r",),
                 color=color,
             ),
             "foo",
@@ -164,14 +166,14 @@ color = random_color()
             ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
-                triggers=[Once()],
+                triggers=(Once(),),
                 color=color,
             ),
         ),
         (
             Node(
                 target="t",
-                triggers=["r"],
+                triggers=("r",),
                 color=color,
             ),
             "foo",
@@ -180,7 +182,7 @@ color = random_color()
             ResolvedNode(
                 id="foo",
                 target=Target(commands="echo"),
-                triggers=[Once()],
+                triggers=(Once(),),
                 color=color,
             ),
         ),
@@ -204,7 +206,7 @@ def test_resolve_flow_node(
                 nodes={
                     "foo": Node(
                         target=Target(commands="echo"),
-                        triggers=[Once()],
+                        triggers=(Once(),),
                         color=color,
                     )
                 }
@@ -216,7 +218,7 @@ def test_resolve_flow_node(
                     "foo": ResolvedNode(
                         id="foo",
                         target=Target(commands="echo"),
-                        triggers=[Once()],
+                        triggers=(Once(),),
                         color=color,
                     )
                 }
@@ -229,7 +231,7 @@ def test_resolve_flow_node(
                         target="t",
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
-                        triggers=["r"],
+                        triggers=("r",),
                         color=color,
                     )
                 },
@@ -245,7 +247,7 @@ def test_resolve_flow_node(
                         target=Target(commands="echo"),
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
-                        triggers=[Restart()],
+                        triggers=(Restart(),),
                         color=color,
                     )
                 },
@@ -276,7 +278,7 @@ def test_resolve_flow(
                                 target="t",
                                 args={"foo": "bar"},
                                 envs={"FOO": "BAR"},
-                                triggers=["r"],
+                                triggers=("r",),
                                 color=color,
                             )
                         },
@@ -295,7 +297,7 @@ def test_resolve_flow(
                             target=Target(commands="echo"),
                             args={"foo": "bar"},
                             envs={"FOO": "BAR"},
-                            triggers=[Restart()],
+                            triggers=(Restart(),),
                             color=color,
                         )
                     },
@@ -311,3 +313,61 @@ def test_resolve_config(
     expected: dict[str, ResolvedFlow],
 ) -> None:
     assert config.resolve() == expected
+
+
+watch = Watch(watch=("/path/to/watch",))
+after = After(after=("foo",))
+
+
+@pytest.mark.parametrize(
+    ("triggers", "expected"),
+    (
+        ((Once(),), (Once(),)),
+        ((Restart(),), (Once(),)),
+        ((watch,), (Once(),)),
+        ((Once(), Restart()), (Once(),)),
+        ((watch, Restart()), (Once(),)),
+        ((Once(), watch), (Once(),)),
+        ((Restart(), watch), (Once(),)),
+        ((after,), (after,)),
+        ((after, Once()), (after, Once())),
+        ((after, Once(), watch), (after, Once())),
+        ((after, Once(), watch, Restart()), (after, Once())),
+    ),
+)
+def test_resolved_node_once(
+    triggers: tuple[AnyTrigger, ...], expected: tuple[AnyTrigger, ...]
+) -> None:
+    node = ResolvedNode(
+        id="foo",
+        target=Target(commands="echo"),
+        triggers=triggers,
+        color=color,
+    )
+
+    assert node.once().triggers == expected
+
+
+def test_resolved_flow_once():
+    flow = ResolvedFlow(
+        nodes={
+            "foo": ResolvedNode(
+                id="foo",
+                target=Target(commands="echo"),
+                triggers=(Restart(),),
+                color=color,
+            ),
+            "bar": ResolvedNode(
+                id="bar",
+                target=Target(commands="echo"),
+                triggers=(After(after=("foo",)),),
+                color=color,
+            ),
+        }
+    )
+
+    once_flow = flow.once()
+
+    assert len(once_flow.nodes) == 2
+    assert once_flow.nodes["foo"].triggers == (Once(),)
+    assert once_flow.nodes["bar"].triggers == (After(after=("foo",)),)

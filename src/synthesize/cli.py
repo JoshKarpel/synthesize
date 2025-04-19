@@ -29,6 +29,10 @@ def run(
         default="default",
         help="The flow to execute.",
     ),
+    once: bool = Option(
+        default=False,
+        help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
+    ),
     config: Optional[Path] = Option(
         default=None,
         exists=True,
