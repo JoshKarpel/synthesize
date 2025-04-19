@@ -71,7 +71,7 @@ include = "\\.pyi?$"
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers", "-v"]
-testpaths = ["tests", "synthesize", "docs"]
+testpaths = ["tests", "src", "docs"]
 
 markers = ["slow"]
 
