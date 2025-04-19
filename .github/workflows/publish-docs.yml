@@ -11,13 +11,12 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v4.2.2
-    - name: Set up Python 3.x
-      uses: actions/setup-python@v5.5.0
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5.3.1
       with:
         python-version: "3.x"
-    - name: Install Poetry
-      uses: snok/install-poetry@v1.4.1
+        enable-cache: true
     - name: Install Package
-      run: poetry install
+      run: uv pip install .
     - name: Build and deploy docs
-      run:  poetry run mkdocs gh-deploy --clean --strict --verbose --force
+      run: uv run mkdocs gh-deploy --clean --strict --verbose --force

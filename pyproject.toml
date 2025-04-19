@@ -1,16 +1,17 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
+[project]
 name = "synthesize"
-version = "0.0.5"
+version = "0.0.6"
 description = "A flexible concurrent command runner."
-authors = ["Josh Karpel <josh.karpel@gmail.com>"]
+authors = [
+    { name = "Josh Karpel", email = "josh.karpel@gmail.com" }
+]
+requires-python = ">=3.10"
 readme = "README.md"
-homepage="https://github.com/JoshKarpel/synthesize"
-repository="https://github.com/JoshKarpel/synthesize"
-documentation="https://www.synth.how"
+license = "MIT"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Environment :: Console",
@@ -27,38 +28,42 @@ classifiers = [
     "Topic :: Utilities",
     "Typing :: Typed",
 ]
-license = "MIT"
-include = ["py.typed"]
+dependencies = [
+    "pydantic>=2",
+    "rich>=13.3",
+    "typer>=0.7",
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "networkx>=3.0",
+    "watchfiles>=0.18",
+    "identify>=2.5",
+    "jinja2>=3.1",
+    "more-itertools>=10.3",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4"  # required by openapi-pydantic
-pydantic = ">=2"
-rich = ">=13.3"
-typer = ">=0.7"
-click = ">=8.1"
-pyyaml = ">=6.0"
-networkx = ">=3.0"
-watchfiles = ">=0.18"
-identify = ">=2.5"
-jinja2 = ">=3.1"
-more-itertools = ">=10.3"
+[dependency-groups]
+dev = [
+    "pre-commit>=3",
+    "pytest>=7",
+    "pytest-cov>=3",
+    "pytest-asyncio>=0.20",
+    "pytest-mock>=3",
+    "hypothesis>=6",
+    "mypy>=1",
+    "types-pyyaml>=6",
+    "mkdocs>=1.4",
+    "mkdocs-material>=9",
+    "mkdocstrings[python]>=0.19.0",
+    "openapi-pydantic>=0.4",
+]
 
-[tool.poetry.group.dev.dependencies]
-pre-commit = ">=3"
-pytest = ">=7"
-pytest-cov = ">=3"
-pytest-asyncio = ">=0.20"
-pytest-mock = ">=3"
-hypothesis = ">=6"
-mypy = ">=1"
-types-pyyaml = ">=6"
-mkdocs = ">=1.4"
-mkdocs-material = ">=9"
-mkdocstrings = {extras = ["python"], version = ">=0.19.0"}
-openapi-pydantic = ">=0.4"
+[project.urls]
+Homepage = "https://github.com/JoshKarpel/synthesize"
+Repository = "https://github.com/JoshKarpel/synthesize"
+Documentation = "https://www.synth.how"
 
-[tool.poetry.scripts]
-synth = 'synthesize.cli:cli'
+[project.scripts]
+synth = "synthesize.cli:cli"
 
 [tool.black]
 line-length = 100
@@ -66,7 +71,7 @@ include = "\\.pyi?$"
 
 [tool.pytest.ini_options]
 addopts = ["--strict-markers", "-v"]
-testpaths = ["tests", "synthesize", "docs"]
+testpaths = ["tests", "src", "docs"]
 
 markers = ["slow"]
 

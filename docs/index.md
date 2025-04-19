@@ -53,6 +53,13 @@ synth --help
 ```
 to get started.
 
+!!! warning "Synthesize does not work on Windows"
+
+    We recommend using the [Windows Subsystem for Linux (WSL)](https://learn.microsoft.com/en-us/windows/wsl/install)
+    to run Synthesize on Windows.
+
+
+
 ## Inspirations
 
 - [`concurrently`](https://www.npmjs.com/package/concurrently)

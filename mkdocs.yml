@@ -8,7 +8,7 @@ extra_css:
   - assets/style.css
 
 watch:
-  - synthesize/
+  - src/synthesize/
   - docs/
 
 theme:
