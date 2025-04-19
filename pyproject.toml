@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "synthesize"
-version = "0.0.5"
+version = "0.0.6"
 description = "A flexible concurrent command runner."
 authors = [
     { name = "Josh Karpel", email = "josh.karpel@gmail.com" }
