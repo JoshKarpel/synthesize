@@ -31,7 +31,7 @@ targets:
 triggers:
   code-changes:
     watch:
-    - synthesize/
+    - src/
     - tests/
     - docs/examples/
     - docs/hooks/

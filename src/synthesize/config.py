@@ -156,6 +156,19 @@ class ResolvedNode(Model):
     def uid(self) -> str:
         return md5(self.model_dump_json(exclude={"color"}).encode())
 
+    def once(self) -> ResolvedNode:
+        existing_ok_triggers = tuple(t for t in self.triggers if isinstance(t, (Once, After)))
+        triggers = existing_ok_triggers or (Once(),)
+
+        return ResolvedNode(
+            id=self.id,
+            target=self.target,
+            args=self.args,
+            envs=self.envs,
+            triggers=triggers,
+            color=self.color,
+        )
+
 
 class Node(Model):
     target: Annotated[
@@ -222,6 +235,13 @@ class ResolvedFlow(Model):
             description="Environment variables to apply to all nodes in this flow.",
         ),
     ] = {}
+
+    def once(self) -> ResolvedFlow:
+        return ResolvedFlow(
+            nodes={id: node.once() for id, node in self.nodes.items()},
+            args=self.args,
+            envs=self.envs,
+        )
 
     @cached_property
     def graph(self) -> DiGraph:
