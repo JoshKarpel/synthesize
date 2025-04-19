@@ -6,8 +6,10 @@ build-backend = "hatchling.build"
 name = "synthesize"
 version = "0.0.5"
 description = "A flexible concurrent command runner."
-authors = [{ name = "Josh Karpel", email = "josh.karpel@gmail.com" }]
-requires-python = ">=3.10,<4"
+authors = [
+    { name = "Josh Karpel", email = "josh.karpel@gmail.com" }
+]
+requires-python = ">=3.12"
 readme = "README.md"
 license = "MIT"
 classifiers = [
@@ -39,14 +41,6 @@ dependencies = [
     "more-itertools>=10.3",
 ]
 
-[project.urls]
-Homepage = "https://github.com/JoshKarpel/synthesize"
-Repository = "https://github.com/JoshKarpel/synthesize"
-Documentation = "https://www.synth.how"
-
-[project.scripts]
-synth = "synthesize.cli:cli"
-
 [dependency-groups]
 dev = [
     "pre-commit>=3",
@@ -63,11 +57,13 @@ dev = [
     "openapi-pydantic>=0.4",
 ]
 
-[tool.hatch.build.targets.sdist]
-include = ["py.typed"]
+[project.urls]
+Homepage = "https://github.com/JoshKarpel/synthesize"
+Repository = "https://github.com/JoshKarpel/synthesize"
+Documentation = "https://www.synth.how"
 
-[tool.hatch.build.targets.wheel]
-include = ["py.typed"]
+[project.scripts]
+synth = "synthesize.cli:cli"
 
 [tool.black]
 line-length = 100
