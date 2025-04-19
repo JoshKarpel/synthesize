@@ -348,7 +348,7 @@ def test_resolved_node_once(
     assert node.once().triggers == expected
 
 
-def test_resolved_flow_once():
+def test_resolved_flow_once() -> None:
     flow = ResolvedFlow(
         nodes={
             "foo": ResolvedNode(
