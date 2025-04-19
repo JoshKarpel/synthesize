@@ -9,7 +9,7 @@ description = "A flexible concurrent command runner."
 authors = [
     { name = "Josh Karpel", email = "josh.karpel@gmail.com" }
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.10"
 readme = "README.md"
 license = "MIT"
 classifiers = [
