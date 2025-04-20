@@ -19,6 +19,8 @@
 - [#128](https://github.com/JoshKarpel/synthesize/pull/128)
   The separator rule is now red when any node has failed,
   and a status summary is printed when exiting.
+- [#131](https://github.com/JoshKarpel/synthesize/pull/131)
+  Flows can no longer have cycles in them (via the `after` trigger).
 
 ### Fixed
 
