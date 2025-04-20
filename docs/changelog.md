@@ -25,7 +25,7 @@
 ### Fixed
 
 - [#129](https://github.com/JoshKarpel/synthesize/pull/129)
-  Ensured that the async task that trigger restarts don't get garbage-collected.
+  Ensured that the async tasks that trigger restarts don't get garbage-collected.
 
 ## `0.0.5`
 
