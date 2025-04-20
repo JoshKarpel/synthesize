@@ -20,6 +20,11 @@
   The separator rule is now red when any node has failed,
   and a status summary is printed when exiting.
 
+### Fixed
+
+- [#129](https://github.com/JoshKarpel/synthesize/pull/129)
+  Ensured that the async task that trigger restarts don't get garbage-collected.
+
 ## `0.0.5`
 
 Released `2025-02-12`

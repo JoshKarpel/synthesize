@@ -1,27 +1,14 @@
-from time import monotonic
-
 import pytest
 
-from synthesize.utils import delay, md5
-
-
-async def test_delay() -> None:
-    async def fn() -> str:
-        return "hi"
-
-    start = monotonic()
-
-    assert await delay(0.1, fn) == "hi"
-
-    assert monotonic() - start >= 0.1
+from synthesize.utils import hash_data
 
 
 @pytest.mark.parametrize(
     ("data", "expected"),
     (
-        (b"", "d41d8cd98f00b204e9800998ecf8427e"),
-        (b"hello", "5d41402abc4b2a76b9719d911017c592"),
+        (b"", "da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+        (b"hello", "aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d"),
     ),
 )
-def test_md5(data: bytes, expected: str) -> None:
-    assert md5(data) == expected
+def test_hash_data(data: bytes, expected: str) -> None:
+    assert hash_data(data) == expected
