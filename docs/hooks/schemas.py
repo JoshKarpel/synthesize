@@ -45,9 +45,7 @@ def indent(lines: Iterator[str]) -> Iterator[str]:
 sep = "○"
 
 
-def schema_lines(
-    schema_or_ref: Schema | Reference, key: str | None, defs: Mapping[str, Schema]
-) -> Iterator[str]:
+def schema_lines(schema_or_ref: Schema | Reference, key: str | None, defs: Mapping[str, Schema]) -> Iterator[str]:
     schema = ref_to_schema(schema_or_ref, defs)
 
     dt = italic(display_type(schema, defs))
@@ -63,9 +61,7 @@ def schema_lines(
         t = mono(st.lower()) if st else ""
         yield f"- {t} {dt} {sep if schema.description else ''} {schema.description}"
     elif schema.type is DataType.OBJECT:
-        default = (
-            f" (Default: {mono(repr(schema.default))}) " if key and not schema.required else " "
-        )
+        default = f" (Default: {mono(repr(schema.default))}) " if key and not schema.required else " "
         yield f"- {key or st.title()} {dt} {default} {sep if schema.description else ''} {schema.description or ''}"
         if not schema.properties:
             return
@@ -79,9 +75,7 @@ def schema_lines(
                 f"Type {schema.type} not implemented. Appeared in the schema for {st}: {schema!r}."
             )
     else:
-        raise NotImplementedError(
-            f"Type {schema.type} not implemented. Appeared in the schema for {st}: {schema!r}."
-        )
+        raise NotImplementedError(f"Type {schema.type} not implemented. Appeared in the schema for {st}: {schema!r}.")
 
 
 def ref_to_schema(schema_or_ref: Schema | Reference, defs: Mapping[str, Schema]) -> Schema:

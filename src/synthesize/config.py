@@ -62,9 +62,7 @@ class Target(Model):
         ),
     ] = {}
 
-    executable: Annotated[str, Field(description="The executable to run this target with.")] = (
-        "sh -eu"
-    )
+    executable: Annotated[str, Field(description="The executable to run this target with.")] = "sh -eu"
 
     @field_validator("commands")
     @classmethod

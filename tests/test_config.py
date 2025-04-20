@@ -335,9 +335,7 @@ after = After(after=("foo",))
         ((after, Once(), watch, Restart()), (after, Once())),
     ),
 )
-def test_resolved_node_once(
-    triggers: tuple[AnyTrigger, ...], expected: tuple[AnyTrigger, ...]
-) -> None:
+def test_resolved_node_once(triggers: tuple[AnyTrigger, ...], expected: tuple[AnyTrigger, ...]) -> None:
     node = ResolvedNode(
         id="foo",
         target=Target(commands="echo"),
