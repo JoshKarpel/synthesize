@@ -89,6 +89,9 @@ def run(
         )
         raise Exit(code=1)
 
+    if once:
+        selected_flow = selected_flow.once()
+
     if mermaid:
         print(selected_flow.mermaid())
         return
