@@ -1,5 +1,19 @@
 # Changelog
 
+## `0.0.6`
+
+## Added
+
+- [#126](https://github.com/JoshKarpel/synthesize/pull/126)
+  If no more work can be done in a flow, `synth` will exit.
+  If all targets ran and succeeded, the exit code will be `0`.
+  Otherwise, the exit code will be `1`.
+- [#126](https://github.com/JoshKarpel/synthesize/pull/126)
+  Added the `--once` option, which replaces all "repeating" triggers (like `watch` or `restart`) with `once`.
+  This allows an existing flow to be run as a "single shot",
+  and when combined with the exit behavior change described above
+  potentially useful for using Snyth workflows in CI or other automation.
+
 ## `0.0.5`
 
 Released `2025-02-12`

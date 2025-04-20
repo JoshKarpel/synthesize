@@ -302,9 +302,7 @@ async def test_envs(
         2 * OUTPUT_BUFFER_SIZE,
     ),
 )
-async def test_very_long_lines_dont_break_reader_but_might_not_be_emitted(
-    tmp_path: Path, line_length: int
-) -> None:
+async def test_very_long_lines_dont_break_reader_but_might_not_be_emitted(tmp_path: Path, line_length: int) -> None:
     expected = "a" * line_length
     node = ResolvedNode(
         id="foo",

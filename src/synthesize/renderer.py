@@ -107,9 +107,9 @@ class Renderer:
         self,
         message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged,
     ) -> str:
-        return prefix_format.format_map(
-            {"id": message.node.id, "timestamp": message.timestamp}
-        ).ljust(self.prefix_width)
+        return prefix_format.format_map({"id": message.node.id, "timestamp": message.timestamp}).ljust(
+            self.prefix_width
+        )
 
     def handle_command_message(self, message: ExecutionOutput) -> None:
         prefix = Text(
@@ -124,9 +124,7 @@ class Renderer:
 
         self.console.print(g)
 
-    def handle_lifecycle_message(
-        self, message: ExecutionStarted | ExecutionCompleted | WatchPathChanged
-    ) -> None:
+    def handle_lifecycle_message(self, message: ExecutionStarted | ExecutionCompleted | WatchPathChanged) -> None:
         prefix = Text.from_markup(
             self.render_prefix(message),
             style=Style(color=message.node.color, dim=True),
@@ -148,9 +146,7 @@ class Renderer:
                     f" in {duration.total_seconds() :.3f} seconds",
                 )
             case WatchPathChanged(node=node):
-                changes = Text(" ").join(
-                    Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes
-                )
+                changes = Text(" ").join(Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes)
 
                 parts = (
                     "Running ",
@@ -175,9 +171,7 @@ class Renderer:
         g = Table.grid()
 
         prefix = Text.from_markup(
-            prefix_format.format_map({"id": "DEBUG", "timestamp": message.timestamp}).ljust(
-                self.prefix_width
-            ),
+            prefix_format.format_map({"id": "DEBUG", "timestamp": message.timestamp}).ljust(self.prefix_width),
             style=Style(color="red", dim=True),
         )
 
@@ -205,10 +199,7 @@ class Renderer:
 
         return len(
             max(
-                (
-                    prefix_format.format_map({"timestamp": now, "id": t.id})
-                    for t in self.state.nodes()
-                ),
+                (prefix_format.format_map({"timestamp": now, "id": t.id}) for t in self.state.nodes()),
                 key=len,
             )
         )

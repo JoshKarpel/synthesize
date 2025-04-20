@@ -4,7 +4,7 @@ flows:
       A:
         target: sleep-and-echo
         triggers:
-        - watch: ["synthesize/", "tests/"]
+        - watch: ["src/", "tests/"]
       B:
         target: sleep-and-echo
         triggers:

@@ -29,6 +29,10 @@ def run(
         default="default",
         help="The flow to execute.",
     ),
+    once: bool = Option(
+        default=False,
+        help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
+    ),
     config: Optional[Path] = Option(
         default=None,
         exists=True,
@@ -85,6 +89,9 @@ def run(
         )
         raise Exit(code=1)
 
+    if once:
+        selected_flow = selected_flow.once()
+
     if mermaid:
         print(selected_flow.mermaid())
         return
@@ -95,7 +102,8 @@ def run(
     controller = Orchestrator(flow=selected_flow, console=console)
 
     try:
-        asyncio.run(controller.run())
+        exit_code = asyncio.run(controller.run())
+        raise Exit(code=exit_code)
     except KeyboardInterrupt:
         raise Exit(code=0)
     finally:
