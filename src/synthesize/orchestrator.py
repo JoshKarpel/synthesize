@@ -58,12 +58,12 @@ class Orchestrator:
                 if self.heartbeat is not None:
                     self.heartbeat.cancel()
 
-                for watcher in self.watchers.values():
-                    watcher.cancel()
-
                 for timer_handle in list(self.restart_timers):
                     timer_handle.cancel()
                     self.restart_timers.discard(timer_handle)
+
+                for watcher in self.watchers.values():
+                    watcher.cancel()
 
                 await gather(*self.watchers.values(), return_exceptions=True)
 
