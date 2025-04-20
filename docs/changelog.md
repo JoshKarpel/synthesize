@@ -16,7 +16,8 @@
 
 ## Changed
 
-- The separator rule is now red when any node has failed,
+- [#128](https://github.com/JoshKarpel/synthesize/pull/128)
+  The separator rule is now red when any node has failed,
   and a status summary is printed when exiting.
 
 ## `0.0.5`
