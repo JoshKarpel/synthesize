@@ -18,7 +18,7 @@ from rich.color import Color
 from typing_extensions import assert_never
 
 from synthesize.model import Model
-from synthesize.utils import md5
+from synthesize.utils import hash_data
 
 Args = dict[
     Annotated[
@@ -157,7 +157,7 @@ class ResolvedNode(Model):
 
     @cached_property
     def uid(self) -> str:
-        return md5(self.model_dump_json(exclude={"color"}).encode())
+        return hash_data(self.model_dump_json(exclude={"color"}).encode())
 
     def once(self) -> ResolvedNode:
         existing_ok_triggers = tuple(t for t in self.triggers if isinstance(t, (Once, After)))
@@ -277,7 +277,7 @@ class ResolvedFlow(Model):
                         lines.append(f"{node.id} -->|∞ {delay:.3g}s| {node.id}")
                     case Watch(watch=paths):
                         text = "\n".join(paths)
-                        h = md5("".join(paths))
+                        h = hash_data("".join(paths))
                         if h not in seen_watches:
                             seen_watches.add(h)
                             lines.append(f'w_{h}[("{text}")]')

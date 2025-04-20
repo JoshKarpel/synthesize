@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import signal
-from asyncio import Queue, Task, create_task, gather, get_running_loop, sleep
+from asyncio import Queue, Task, TimerHandle, create_task, gather, get_running_loop, sleep
 from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -36,6 +36,7 @@ class Orchestrator:
         self.executions: dict[str, Execution] = {}
         self.waiters: dict[str, Task[Execution]] = {}
         self.watchers: dict[str, Task[None]] = {}
+        self.restart_timers: set[TimerHandle] = set()
         self.heartbeat: Task[None] | None = None
 
     async def run(self) -> int:
@@ -59,6 +60,10 @@ class Orchestrator:
 
                 for watcher in self.watchers.values():
                     watcher.cancel()
+
+                for timer_handle in list(self.restart_timers):
+                    timer_handle.cancel()
+                    self.restart_timers.discard(timer_handle)
 
                 await gather(*self.watchers.values(), return_exceptions=True)
 
@@ -87,8 +92,10 @@ class Orchestrator:
                                     def waiting_to_pending() -> None:
                                         if self.state.statuses[node.id] is Status.Waiting:
                                             self.state.mark_pending(node)
+                                        self.restart_timers.discard(handle)
 
-                                    get_running_loop().call_later(t.delay, waiting_to_pending)
+                                    handle = get_running_loop().call_later(t.delay, waiting_to_pending)
+                                    self.restart_timers.add(handle)
                                 break
                         else:
                             if exit_code == 0:
