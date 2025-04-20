@@ -6,8 +6,20 @@ from dataclasses import dataclass
 from enum import Enum
 
 from networkx import DiGraph, ancestors, descendants
+from networkx.algorithms.cycles import find_cycle
+from networkx.exception import NetworkXNoCycle
 
 from synthesize.config import After, RepeatingTrigger, ResolvedFlow, ResolvedNode
+
+
+class CyclicFlowDetected(Exception):
+    def __init__(self, cycle: tuple[str, ...]):
+        super().__init__()
+
+        self.cycle = cycle
+
+    def cycle_path(self) -> str:
+        return " -> ".join((*self.cycle, self.cycle[0]))
 
 
 @dataclass(frozen=True)
@@ -26,6 +38,12 @@ class FlowState:
                 if isinstance(t, After):
                     for predecessor_id in t.after:
                         graph.add_edge(predecessor_id, id)
+
+        try:
+            cycle = find_cycle(graph)
+            raise CyclicFlowDetected(tuple(start for start, _end in cycle))
+        except NetworkXNoCycle:
+            pass
 
         return FlowState(
             graph=graph,

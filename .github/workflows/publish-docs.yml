@@ -15,7 +15,5 @@ jobs:
       uses: astral-sh/setup-uv@v5.3.1
       with:
         enable-cache: true
-    - name: Install Package
-      run: uv pip install .
     - name: Build and deploy docs
       run: uv run mkdocs gh-deploy --clean --strict --verbose --force
