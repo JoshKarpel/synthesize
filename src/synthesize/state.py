@@ -7,7 +7,7 @@ from enum import Enum
 
 from networkx import DiGraph, ancestors, descendants
 
-from synthesize.config import After, ResolvedFlow, ResolvedNode
+from synthesize.config import After, RepeatingTrigger, ResolvedFlow, ResolvedNode
 
 
 @dataclass(frozen=True)
@@ -70,14 +70,29 @@ class FlowState:
         for node in nodes:
             self.statuses[node.id] = status
 
+    def parents(self, node: ResolvedNode) -> Collection[ResolvedNode]:
+        return tuple(self.flow.nodes[id] for id in self.graph.predecessors(node.id))
+
     def children(self, node: ResolvedNode) -> Collection[ResolvedNode]:
         return tuple(self.flow.nodes[id] for id in self.graph.successors(node.id))
 
     def descendants(self, node: ResolvedNode) -> Collection[ResolvedNode]:
         return tuple(self.flow.nodes[id] for id in descendants(self.graph, node.id))
 
-    def all_done(self) -> bool:
+    def all_succeeded(self) -> bool:
         return all(status is Status.Succeeded for status in self.statuses.values())
+
+    def no_more_work_possible(self) -> bool:
+        # If any node has a repeating trigger,
+        # there might be work to do in the future
+        # even if there isn't any to do right now.
+        for node in self.flow.nodes.values():
+            if any(isinstance(t, RepeatingTrigger) for t in node.triggers):  # type: ignore[misc,arg-type]
+                return False
+
+        # Otherwise, if there are no ready nodes and no running or starting nodes, we must be done.
+        nodes_by_status = self.nodes_by_status()
+        return not self.ready_nodes() and not nodes_by_status[Status.Running] and not nodes_by_status[Status.Starting]
 
     def nodes(self) -> Iterator[ResolvedNode]:
         yield from self.flow.nodes.values()

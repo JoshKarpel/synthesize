@@ -128,6 +128,11 @@ AnyTrigger = Union[
     Watch,
 ]
 
+RepeatingTrigger = Union[
+    Restart,
+    Watch,
+]
+
 
 class ResolvedNode(Model):
     id: str

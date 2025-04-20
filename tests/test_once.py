@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from typer.testing import CliRunner
 
-from synthesize.cli import cli
+from tests.conftest import run_example
 
 runner = CliRunner()
 
 
 def test_once_flag_terminates_watch_flow() -> None:
-    example_path = Path(__file__).parent.parent / "docs" / "examples" / "watch.yaml"
+    result = run_example("watch.yaml", ("--once",))
 
-    result = runner.invoke(cli, ["--once", "--config", str(example_path)])
-
-    assert result.exit_code == 0, f"Command failed with exit code {result.exit_code}: {result.stdout}"
+    assert result.exit_code == 0

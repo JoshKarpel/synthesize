@@ -38,9 +38,9 @@ class Orchestrator:
         self.watchers: dict[str, Task[None]] = {}
         self.heartbeat: Task[None] | None = None
 
-    async def run(self) -> None:
+    async def run(self) -> int:
         if not self.flow.nodes:
-            return
+            return 0
 
         with TemporaryDirectory(prefix="synth-") as tmpdir, self.renderer:
             tmp_dir = Path(tmpdir)
@@ -50,7 +50,7 @@ class Orchestrator:
                 await self.start_watchers()
                 await self.start_ready_targets(tmp_dir=tmp_dir)
 
-                await self.handle_messages(tmp_dir=tmp_dir)
+                return await self.handle_messages(tmp_dir=tmp_dir)
             finally:
                 self.renderer.handle_shutdown_start()
 
@@ -69,7 +69,7 @@ class Orchestrator:
 
                 self.renderer.handle_shutdown_end()
 
-    async def handle_messages(self, tmp_dir: Path) -> None:
+    async def handle_messages(self, tmp_dir: Path) -> int:
         signal.signal(signal.SIGINT, lambda sig, frame: self.inbox.put_nowait(Quit()))
 
         while True:
@@ -96,6 +96,8 @@ class Orchestrator:
                             else:
                                 self.state.mark_failure(node)
 
+                    # Mark children of the completed node as pending,
+                    # so that if they had already run they will be started again.
                     self.state.mark_pending(*self.state.children(node))
 
                 case WatchPathChanged(node=node):
@@ -104,14 +106,14 @@ class Orchestrator:
                         self.state.mark_pending(node)
 
                 case Quit():
-                    return
+                    return 0
 
             await self.start_ready_targets(tmp_dir=tmp_dir)
 
             self.renderer.handle_message(message)
 
-            if self.state.all_done() and not self.watchers:
-                return
+            if self.state.no_more_work_possible():
+                return 0 if self.state.all_succeeded() else 1
 
     async def start_heartbeat(self) -> None:
         async def heartbeat() -> None:
@@ -127,7 +129,7 @@ class Orchestrator:
                 if not e.has_exited:
                     continue
 
-            self.state.mark(node, status=Status.Waiting)
+            self.state.mark(node, status=Status.Starting)
 
             e = await Execution.start(
                 node=node,

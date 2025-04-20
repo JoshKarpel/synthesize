@@ -102,7 +102,8 @@ def run(
     controller = Orchestrator(flow=selected_flow, console=console)
 
     try:
-        asyncio.run(controller.run())
+        exit_code = asyncio.run(controller.run())
+        raise Exit(code=exit_code)
     except KeyboardInterrupt:
         raise Exit(code=0)
     finally:
