@@ -3,10 +3,10 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Build/Test Commands
-- Run all tests: `uv run pytest`. Running the tests is fast; prefer running all the tests to running a single test.
+- Run all tests: `uv run pytest`.
 - Run a single test: `uv run pytest tests/test_file.py::test_function`
 - Type checking: `uv run mypy`
-- Linting and formatting: `uv run pre-commit run`
+- Linting and formatting: `git add -u && uv run pre-commit run`
 - Build docs: `uv run mkdocs build`
 
 ## Code Style Guidelines

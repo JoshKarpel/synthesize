@@ -105,3 +105,6 @@ class Status(Enum):
     Running = "running"
     Succeeded = "succeeded"
     Failed = "failed"
+
+    def display(self) -> str:
+        return self.value.capitalize()

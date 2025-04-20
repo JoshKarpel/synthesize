@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from functools import cached_property
 from types import TracebackType
-from typing import Type
+from typing import Collection, Mapping, Type
 
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
@@ -14,6 +14,7 @@ from rich.text import Text
 from typing_extensions import assert_never
 from watchfiles import Change
 
+from synthesize.config import ResolvedNode
 from synthesize.messages import (
     Debug,
     ExecutionCompleted,
@@ -99,9 +100,15 @@ class Renderer:
         )
 
         return Group(
-            Rule(style=(Style(color="green" if nodes_by_status[Status.Running] else "yellow"))),
+            self.rule(nodes_by_status),
             table,
         )
+
+    def rule(self, nodes_by_status: Mapping[Status, Collection[ResolvedNode]]) -> Rule:
+        rule_color = (
+            "red" if nodes_by_status[Status.Failed] else "green" if nodes_by_status[Status.Running] else "yellow"
+        )
+        return Rule(style=Style(color=rule_color))
 
     def render_prefix(
         self,
@@ -185,13 +192,29 @@ class Renderer:
         self.console.print(g)
 
     def handle_shutdown_start(self) -> None:
-        self.live.update(Group(Rule(), Text("Shutting down...")), refresh=True)
+        self.live.update(Group(self.rule(self.state.nodes_by_status()), Text("Shutting down...")), refresh=True)
 
     def handle_shutdown_end(self) -> None:
-        self.live.update(Rule(), refresh=True)
+        self.live.update(self.rule(self.state.nodes_by_status()), refresh=True)
 
     def update(self, message: Message) -> None:
         self.live.update(self.info(message), refresh=True)
+
+    def state_summary(self) -> Table:
+        table = Table.grid(padding=(0, 1, 0, 0), expand=False)
+
+        nodes_by_status = self.state.nodes_by_status()
+        for status, nodes in nodes_by_status.items():
+            if nodes:
+                table.add_row(
+                    Text(status.display()),
+                    Text(" ").join(
+                        Text(t.id, style=Style(color="black", bgcolor=t.color))
+                        for t in sorted(nodes, key=lambda t: t.id)
+                    ),
+                )
+
+        return table
 
     @cached_property
     def prefix_width(self) -> int:

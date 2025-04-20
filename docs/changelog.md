@@ -2,7 +2,7 @@
 
 ## `0.0.6`
 
-## Added
+### Added
 
 - [#126](https://github.com/JoshKarpel/synthesize/pull/126)
   If no more work can be done in a flow, `synth` will exit.
@@ -13,6 +13,12 @@
   This allows an existing flow to be run as a "single shot",
   and when combined with the exit behavior change described above
   potentially useful for using Snyth workflows in CI or other automation.
+
+### Changed
+
+- [#128](https://github.com/JoshKarpel/synthesize/pull/128)
+  The separator rule is now red when any node has failed,
+  and a status summary is printed when exiting.
 
 ## `0.0.5`
 
