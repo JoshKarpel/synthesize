@@ -1,5 +1,13 @@
 # Changelog
 
+## `0.0.6`
+
+## Added
+
+- Added the `--once` option, which replaces all "repeating" triggers (like `watch` or `restart`) with `once`.
+  This allows an existing flow to be run as a "single shot",
+  potentially useful for using Snyth workflows in CI or other automation.
+
 ## `0.0.5`
 
 Released `2025-02-12`
