@@ -109,7 +109,8 @@ def run(
     finally:
         end_time = monotonic()
 
-        console.print(Text(f"Finished in {end_time - start_time:.3f} seconds."))
+        console.print(Text(f"Finished in {end_time - start_time:.3f} seconds. Final state:"))
+        console.print(controller.renderer.state_summary())
 
 
 def find_config_file(console: Console) -> Path:

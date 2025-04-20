@@ -14,6 +14,11 @@
   and when combined with the exit behavior change described above
   potentially useful for using Snyth workflows in CI or other automation.
 
+## Changed
+
+- The separator rule is now red when any node has failed,
+  and a status summary is printed when exiting.
+
 ## `0.0.5`
 
 Released `2025-02-12`
