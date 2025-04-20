@@ -1,0 +1,24 @@
+flows:
+  default:
+    nodes:
+      a:
+        target:
+          commands: |
+            echo "Task A"
+            sleep 1
+        triggers:
+          - after: [c]
+      b:
+        target:
+          commands: |
+            echo "Task B"
+            sleep 1
+        triggers:
+          - after: [a]
+      c:
+        target:
+          commands: |
+            echo "Task C"
+            sleep 1
+        triggers:
+          - after: [b]

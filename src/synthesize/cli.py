@@ -17,6 +17,7 @@ from typer import Argument, Option, Typer
 
 from synthesize.config import Config
 from synthesize.orchestrator import Orchestrator
+from synthesize.state import CyclicFlowDetected
 
 ru.STYLE_HELPTEXT = ""
 
@@ -83,7 +84,7 @@ def run(
         available_flows = sep + sep.join(resolved.keys())
         console.print(
             Text(
-                f"No flow named '{flow}'. Available flows:{available_flows}",
+                f"Error: no flow named '{flow}'. Available flows:{available_flows}",
                 style=Style(color="red"),
             )
         )
@@ -99,7 +100,16 @@ def run(
     if dry:
         return
 
-    controller = Orchestrator(flow=selected_flow, console=console)
+    try:
+        controller = Orchestrator(flow=selected_flow, console=console)
+    except CyclicFlowDetected as e:
+        console.print(
+            Text(
+                f"Error: cyclic flow detected: {e.cycle_path()}. Cyclic flows are not allowed.",
+                style=Style(color="red"),
+            )
+        )
+        raise Exit(code=1)
 
     try:
         exit_code = asyncio.run(controller.run())
@@ -124,5 +134,5 @@ def find_config_file(console: Console) -> Path:
         if dir / ".git" in contents:
             break
 
-    console.print(Text("Failed to find a Synthesize config file", style=Style(color="red")))
+    console.print(Text("Error: failed to find a Synthesize config file", style=Style(color="red")))
     raise Exit(code=1)
