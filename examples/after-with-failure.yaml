@@ -1,0 +1,29 @@
+flows:
+  default:
+    nodes:
+      A:
+        target: sleep-and-echo
+      B:
+        target: sleep-and-echo
+      C:
+        target:
+          commands: |
+            exit 1
+      D:
+        target: sleep-and-echo
+        triggers:
+        - after: [A, B]
+      E:
+        target: sleep-and-echo
+        triggers:
+        - after: [C]
+      F:
+        target: sleep-and-echo
+        triggers:
+        - after: [D, E]
+
+targets:
+  sleep-and-echo:
+    commands: |
+      sleep 1
+      echo "Hi from {{ id }}!"
