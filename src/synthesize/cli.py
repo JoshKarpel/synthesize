@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 from time import monotonic
-from typing import Optional
+from typing import Annotated, Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
@@ -42,6 +42,22 @@ def run(
         envvar="SYNTHFILE",
         help="The path to the configuration file to execute.",
     ),
+    args: Annotated[
+        list[str],
+        Option(
+            "--arg",
+            "-a",
+            help="Additional arguments to pass to the flow.",
+        ),
+    ] = (),
+    envs: Annotated[
+        list[str],
+        Option(
+            "--env",
+            "-e",
+            help="Additional environment variables to set for the flow.",
+        ),
+    ] = (),
     mermaid: bool = Option(
         default=False,
         help="If enabled, output a description of the flow as a Mermaid diagram, and don't run the flow.",
@@ -90,6 +106,8 @@ def run(
         )
         raise Exit(code=1)
 
+    selected_flow = selected_flow.with_args_and_envs_from_cli(args, envs)
+
     if once:
         selected_flow = selected_flow.once()
 
@@ -98,6 +116,13 @@ def run(
         return
 
     if dry:
+        console.print(
+            Panel(
+                JSON(selected_flow.model_dump_json(exclude_unset=True)),
+                title="Flow",
+                title_align="left",
+            )
+        )
         return
 
     try:

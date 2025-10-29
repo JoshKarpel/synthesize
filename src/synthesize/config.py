@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import ast
 import shlex
 import shutil
+from collections import defaultdict
 from collections.abc import Mapping
 from colorsys import hsv_to_rgb
 from functools import cached_property
@@ -24,9 +26,7 @@ Args = dict[
     Annotated[
         str,
         Field(
-            # https://jinja.palletsprojects.com/en/3.1.x/api/#notes-on-identifiers
-            pattern=r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*",
-            min_length=1,
+            pattern=r"[a-zA-Z]+",
         ),
     ],
     object,
@@ -172,6 +172,16 @@ class ResolvedNode(Model):
             color=self.color,
         )
 
+    def with_args_and_envs(self, args: Args, envs: Envs) -> ResolvedNode:
+        return ResolvedNode(
+            id=self.id,
+            target=self.target,
+            args=self.args | args,
+            envs=self.envs | envs,
+            triggers=self.triggers,
+            color=self.color,
+        )
+
 
 class Node(Model):
     target: Annotated[
@@ -246,6 +256,46 @@ class ResolvedFlow(Model):
             envs=self.envs,
         )
 
+    def with_args_and_envs_from_cli(self, args: list[str], envs: list[str]) -> ResolvedFlow:
+        new_node_args = defaultdict(dict)
+        new_node_envs = defaultdict(dict)
+        new_args = {}
+        new_envs = {}
+        for a in args:
+            if "=" not in a:  # TODO bad, use a regex
+                raise ValueError(f"Invalid argument '{a}'; must be in the form 'key=value'")
+            key, val = a.split("=", 1)
+            val = eval_cli_arg(val)
+            if "." in key:  # TODO bad, use a regex
+                node, key = key.split(".", 1)
+                if node not in self.nodes:
+                    raise ValueError(f"Invalid argument '{a}'; no such node '{node}'")
+
+                new_node_args[node][key] = val
+            else:
+                new_args[key] = val
+        for e in envs:
+            if "=" not in e:  # TODO bad, use a regex
+                raise ValueError(f"Invalid environment variable '{e}'; must be in the form 'key=value'")
+            key, val = e.split("=", 1)
+            if "." in key:  # TODO bad, use a regex
+                node, key = key.split(".", 1)
+                if node not in self.nodes:
+                    raise ValueError(f"Invalid environment variable '{e}'; no such node '{node}'")
+
+                new_node_envs[node][key] = val
+            else:
+                new_envs[key] = val
+
+        return ResolvedFlow(
+            nodes={
+                id: node.with_args_and_envs(args=new_node_args[id], envs=new_node_envs[id])
+                for id, node in self.nodes.items()
+            },
+            args=self.args | new_args,
+            envs=self.envs | new_envs,
+        )
+
     @cached_property
     def graph(self) -> DiGraph:
         graph = DiGraph()
@@ -286,6 +336,17 @@ class ResolvedFlow(Model):
                         assert_never(never)
 
         return "\n  ".join(lines).strip()
+
+
+def eval_cli_arg(arg: str) -> object:
+    try:
+        node = ast.parse(arg)
+    except SyntaxError:
+        return arg
+    if isinstance(node, ast.Constant):
+        return ast.literal_eval(node)
+    else:
+        return arg
 
 
 class Flow(Model):
