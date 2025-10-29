@@ -10,7 +10,7 @@ from functools import cached_property
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Annotated, Union
+from typing import Annotated, DefaultDict, Union
 
 from identify.identify import tags_from_path
 from jinja2 import Environment
@@ -257,33 +257,33 @@ class ResolvedFlow(Model):
         )
 
     def with_args_and_envs_from_cli(self, args: list[str], envs: list[str]) -> ResolvedFlow:
-        new_node_args = defaultdict(dict)
-        new_node_envs = defaultdict(dict)
+        new_node_args: DefaultDict[str, dict[str, object]] = defaultdict(dict)
+        new_node_envs: DefaultDict[str, dict[str, str]] = defaultdict(dict)
         new_args = {}
         new_envs = {}
         for a in args:
             if "=" not in a:  # TODO bad, use a regex
                 raise ValueError(f"Invalid argument '{a}'; must be in the form 'key=value'")
             key, val = a.split("=", 1)
-            val = eval_cli_arg(val)
+            vval = eval_cli_arg(val)
             if "." in key:  # TODO bad, use a regex
-                node, key = key.split(".", 1)
-                if node not in self.nodes:
-                    raise ValueError(f"Invalid argument '{a}'; no such node '{node}'")
+                node_id, key = key.split(".", 1)
+                if node_id not in self.nodes:
+                    raise ValueError(f"Invalid argument '{a}'; no such node '{node_id}'")
 
-                new_node_args[node][key] = val
+                new_node_args[node_id][key] = vval
             else:
-                new_args[key] = val
+                new_args[key] = vval
         for e in envs:
             if "=" not in e:  # TODO bad, use a regex
                 raise ValueError(f"Invalid environment variable '{e}'; must be in the form 'key=value'")
             key, val = e.split("=", 1)
             if "." in key:  # TODO bad, use a regex
-                node, key = key.split(".", 1)
-                if node not in self.nodes:
-                    raise ValueError(f"Invalid environment variable '{e}'; no such node '{node}'")
+                node_id, key = key.split(".", 1)
+                if node_id not in self.nodes:
+                    raise ValueError(f"Invalid environment variable '{e}'; no such node '{node_id}'")
 
-                new_node_envs[node][key] = val
+                new_node_envs[node_id][key] = val
             else:
                 new_envs[key] = val
 

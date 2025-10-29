@@ -49,7 +49,7 @@ def run(
             "-a",
             help="Additional arguments to pass to the flow.",
         ),
-    ] = (),
+    ] = [],
     envs: Annotated[
         list[str],
         Option(
@@ -57,7 +57,7 @@ def run(
             "-e",
             help="Additional environment variables to set for the flow.",
         ),
-    ] = (),
+    ] = [],
     mermaid: bool = Option(
         default=False,
         help="If enabled, output a description of the flow as a Mermaid diagram, and don't run the flow.",

@@ -70,7 +70,7 @@ line-length = 120
 include = "\\.pyi?$"
 
 [tool.pytest.ini_options]
-addopts = ["--strict-markers", "-v"]
+addopts = ["--strict-markers"]
 testpaths = ["tests", "src", "docs"]
 
 markers = ["slow"]
