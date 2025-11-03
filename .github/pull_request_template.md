@@ -5,3 +5,4 @@ Tasks
 
 - [ ] Updated changelog.
 - [ ] Updated documentation.
+- [ ] Updated tests.

@@ -18,7 +18,7 @@ flows:
 targets:
   tests:
     commands: |
-      pytest -vv --cov
+      pytest {{ args }}
 
   types:
     commands: |
