@@ -106,7 +106,9 @@ def run(
         )
         raise Exit(code=1)
 
+    print(selected_flow)
     selected_flow = selected_flow.with_args_and_envs_from_cli(args, envs)
+    print(selected_flow)
 
     if once:
         selected_flow = selected_flow.once()
