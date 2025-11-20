@@ -1,0 +1,21 @@
+flows:
+  default:
+    nodes:
+      a:
+        target: echo
+        args:
+          arg: a
+        envs:
+          ENV: b
+      b:
+        target: echo
+        args:
+          arg: c
+        envs:
+          ENV: d
+
+targets:
+  echo:
+    commands: |
+      echo "{{ arg }}" "${ENV}"
+      sleep 1

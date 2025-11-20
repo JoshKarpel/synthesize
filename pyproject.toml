@@ -39,6 +39,8 @@ dependencies = [
     "identify>=2.5",
     "jinja2>=3.1",
     "more-itertools>=10.3",
+    "pytest-randomly>=4.0.1",
+    "pytest-xdist>=3.8.0",
 ]
 
 [dependency-groups]
@@ -70,10 +72,21 @@ line-length = 120
 include = "\\.pyi?$"
 
 [tool.pytest.ini_options]
-addopts = ["--strict-markers", "-v"]
-testpaths = ["tests", "src", "docs"]
+addopts = [
+    "--strict-markers",
+    "--numprocesses=auto",
+    "--dist=worksteal",
+]
 
-markers = ["slow"]
+testpaths = [
+    "tests",
+    "src",
+    "docs",
+]
+
+markers = [
+    "slow",
+]
 
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
