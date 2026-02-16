@@ -1,0 +1,17 @@
+flows:
+  default:
+    nodes:
+      A:
+        target: sleep-and-echo
+        triggers:
+        - watch: ["src/", "tests/"]
+      B:
+        target: sleep-and-echo
+        triggers:
+        - watch: [ "docs/" ]
+
+targets:
+  sleep-and-echo:
+    commands: |
+      sleep 1
+      echo "Hi from {{ id }}!"
