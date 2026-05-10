@@ -26,6 +26,16 @@ def test_synth_force_terminal_missing_auto_detects(monkeypatch: pytest.MonkeyPat
     assert console.is_terminal is False  # no tty in test process
 
 
+def test_synth_file_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.setenv("SYNTH_FILE", str(config_file))
+
+    result = CliRunner().invoke(cli, ["run", "--dry"])
+
+    assert result.exit_code == 0
+
+
 def test_setting_override_accepted() -> None:
     result = run_example("once.yaml", ("--setting", "timestamps.sub_second_digits=3"))
 

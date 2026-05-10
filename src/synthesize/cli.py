@@ -36,7 +36,7 @@ ConfigOption = Annotated[
         exists=True,
         readable=True,
         show_default=True,
-        envvar="SYNTHFILE",
+        envvar="SYNTH_FILE",
         help="The path to the configuration file.",
     ),
 ]

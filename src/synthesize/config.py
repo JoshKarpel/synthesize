@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import shlex
 import shutil
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from colorsys import hsv_to_rgb
 from functools import cached_property
 from pathlib import Path
@@ -370,7 +370,7 @@ class Settings(Model):
     dot_env: DotEnvSettings = Field(default_factory=DotEnvSettings)
     timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
 
-    def with_overrides(self, overrides: list[str]) -> Settings:
+    def with_overrides(self, overrides: Sequence[str]) -> Settings:
         d = self.model_dump()
         for override in overrides:
             if not SETTING_OVERRIDE_RE.match(override):
@@ -440,7 +440,7 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self, setting_overrides: list[str] = []) -> ResolvedConfig:
+    def resolve(self, setting_overrides: Sequence[str] = ()) -> ResolvedConfig:
         settings = self.settings.with_overrides(setting_overrides)
         flows = {id: flow.resolve(self.recipes, self.triggers) for id, flow in self.flows.items()}
 

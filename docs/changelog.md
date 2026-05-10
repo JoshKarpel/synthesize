@@ -33,6 +33,9 @@
 
 ### Changed
 
+- [#255](https://github.com/JoshKarpel/synthesize/pull/255)
+  The environment variable for specifying the config file path has been renamed from `SYNTHFILE` to `SYNTH_FILE`.
+
 - [#253](https://github.com/JoshKarpel/synthesize/pull/253)
   `synth` is now a multi-command app.
   Running a flow now requires the explicit `synth run [FLOW]` form;
