@@ -55,7 +55,7 @@ def run(
         "-s",
         "--set",
         "--setting",
-        help="Override a setting from the config file using a dotted path, e.g. -s timestamps.sub_second_digits=3.",
+        help="Override a setting from the config file using a dotted path, e.g. `-s timestamps.sub_second_digits=3`.",
     ),
 ) -> None:
     start_time = monotonic()
