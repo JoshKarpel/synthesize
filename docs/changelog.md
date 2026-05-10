@@ -4,7 +4,7 @@
 
 ### Added
 
-- [#240](https://github.com/JoshKarpel/synthesize/issues/240)
+- [#247](https://github.com/JoshKarpel/synthesize/pull/247)
   Added a `settings` section to the configuration file with a `timestamps` sub-section.
   `timestamps.sub_second_digits` (0-6, default 0) controls how many sub-second digits appear in timestamps,
   and `timestamps.include_date` (default false) prepends the date to timestamps.
