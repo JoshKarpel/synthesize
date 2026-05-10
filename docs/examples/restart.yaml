@@ -2,15 +2,15 @@ flows:
   default:
     nodes:
       A:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
         triggers:
         - delay: 3
       B:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
         triggers:
         - delay: 1
 
-targets:
+recipes:
   sleep-and-echo:
     commands: |
       sleep 1

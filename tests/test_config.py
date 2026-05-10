@@ -12,10 +12,10 @@ from synthesize.config import (
     Flow,
     Node,
     Once,
+    Recipe,
     ResolvedFlow,
     ResolvedNode,
     Restart,
-    Target,
     Watch,
     random_color,
 )
@@ -58,73 +58,73 @@ def test_can_make_style_from_random_color() -> None:
         ),
     ),
 )
-def test_target_commands_dedenting(raw: str, expected: str) -> None:
-    assert Target(commands=raw).commands == expected
+def test_recipe_commands_dedenting(raw: str, expected: str) -> None:
+    assert Recipe(commands=raw).commands == expected
 
 
 @pytest.mark.parametrize(
-    ("target", "args", "expected"),
+    ("recipe", "args", "expected"),
     (
         (
-            Target(commands="", executable="sh"),
+            Recipe(commands="", executable="sh"),
             Args(),
             f"#!{shutil.which('sh')}\n",
         ),
         (
-            Target(commands="echo 'hello'", executable="sh"),
+            Recipe(commands="echo 'hello'", executable="sh"),
             Args(),
             f"#!{shutil.which('sh')}\n\necho 'hello'",
         ),
         (
-            Target(commands="echo '{{foo}}'", executable="sh"),
+            Recipe(commands="echo '{{foo}}'", executable="sh"),
             Args({"foo": "bar"}),
             f"#!{shutil.which('sh')}\n\necho 'bar'",
         ),
         (  # unused values are ok
-            Target(commands="echo '{{foo}}'", executable="sh"),
+            Recipe(commands="echo '{{foo}}'", executable="sh"),
             Args({"foo": "bar", "baz": "qux"}),
             f"#!{shutil.which('sh')}\n\necho 'bar'",
         ),
         (
-            Target(commands="echo {{foo}} {{baz}}", executable="sh"),
+            Recipe(commands="echo {{foo}} {{baz}}", executable="sh"),
             Args({"foo": "bar", "baz": "qux"}),
             f"#!{shutil.which('sh')}\n\necho bar qux",
         ),
         (
-            Target(commands="echo", executable="bash"),
+            Recipe(commands="echo", executable="bash"),
             Args(),
             f"#!{shutil.which('bash')}\n\necho",
         ),
         (
-            Target(commands="{{ 'yes' if choice else 'no' }}", executable="sh"),
+            Recipe(commands="{{ 'yes' if choice else 'no' }}", executable="sh"),
             Args({"choice": True}),
             f"#!{shutil.which('sh')}\n\nyes",
         ),
         (
-            Target(commands="{{ 'yes' if choice else 'no' }}", executable="sh"),
+            Recipe(commands="{{ 'yes' if choice else 'no' }}", executable="sh"),
             Args({"choice": False}),
             f"#!{shutil.which('sh')}\n\nno",
         ),
     ),
 )
-def test_target_rendering(target: Target, args: Args, expected: str) -> None:
-    assert target.render(args) == expected
+def test_recipe_rendering(recipe: Recipe, args: Args, expected: str) -> None:
+    assert recipe.render(args) == expected
 
 
 def test_rendering_fails_for_bogus_executable() -> None:
     with pytest.raises(Exception):
-        Target(executable="bogus").render(Args())
+        Recipe(executable="bogus").render(Args())
 
 
 color = random_color()
 
 
 @pytest.mark.parametrize(
-    ("unresolved_node", "id", "targets", "triggers", "expected"),
+    ("unresolved_node", "id", "recipes", "triggers", "expected"),
     (
         (
             Node(
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(Once(),),
                 color=color,
             ),
@@ -133,30 +133,30 @@ color = random_color()
             {},
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(Once(),),
                 color=color,
             ),
         ),
         (
             Node(
-                target="t",
+                recipe="t",
                 triggers=(Once(),),
                 color=color,
             ),
             "foo",
-            {"t": Target(commands="echo")},
+            {"t": Recipe(commands="echo")},
             {},
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(Once(),),
                 color=color,
             ),
         ),
         (
             Node(
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=("r",),
                 color=color,
             ),
@@ -165,23 +165,23 @@ color = random_color()
             {"r": Once()},
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(Once(),),
                 color=color,
             ),
         ),
         (
             Node(
-                target="t",
+                recipe="t",
                 triggers=("r",),
                 color=color,
             ),
             "foo",
-            {"t": Target(commands="echo")},
+            {"t": Recipe(commands="echo")},
             {"r": Once()},
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(Once(),),
                 color=color,
             ),
@@ -191,21 +191,21 @@ color = random_color()
 def test_resolve_flow_node(
     unresolved_node: Node,
     id: str,
-    targets: dict[str, Target],
+    recipes: dict[str, Recipe],
     triggers: dict[str, AnyTrigger],
     expected: ResolvedNode,
 ) -> None:
-    assert unresolved_node.resolve(id, targets, triggers) == expected
+    assert unresolved_node.resolve(id, recipes, triggers) == expected
 
 
 @pytest.mark.parametrize(
-    ("unresolved_flow", "targets", "triggers", "expected"),
+    ("unresolved_flow", "recipes", "triggers", "expected"),
     (
         (
             Flow(
                 nodes={
                     "foo": Node(
-                        target=Target(commands="echo"),
+                        recipe=Recipe(commands="echo"),
                         triggers=(Once(),),
                         color=color,
                     )
@@ -217,7 +217,7 @@ def test_resolve_flow_node(
                 nodes={
                     "foo": ResolvedNode(
                         id="foo",
-                        target=Target(commands="echo"),
+                        recipe=Recipe(commands="echo"),
                         triggers=(Once(),),
                         color=color,
                     )
@@ -228,7 +228,7 @@ def test_resolve_flow_node(
             Flow(
                 nodes={
                     "foo": Node(
-                        target="t",
+                        recipe="t",
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
                         triggers=("r",),
@@ -238,13 +238,13 @@ def test_resolve_flow_node(
                 args={"baz": "qux"},
                 envs={"BAZ": "QUX"},
             ),
-            {"t": Target(commands="echo")},
+            {"t": Recipe(commands="echo")},
             {"r": Restart()},
             ResolvedFlow(
                 nodes={
                     "foo": ResolvedNode(
                         id="foo",
-                        target=Target(commands="echo"),
+                        recipe=Recipe(commands="echo"),
                         args={"foo": "bar"},
                         envs={"FOO": "BAR"},
                         triggers=(Restart(),),
@@ -259,11 +259,11 @@ def test_resolve_flow_node(
 )
 def test_resolve_flow(
     unresolved_flow: Flow,
-    targets: dict[str, Target],
+    recipes: dict[str, Recipe],
     triggers: dict[str, AnyTrigger],
     expected: ResolvedFlow,
 ) -> None:
-    assert unresolved_flow.resolve(targets, triggers) == expected
+    assert unresolved_flow.resolve(recipes, triggers) == expected
 
 
 @pytest.mark.parametrize(
@@ -275,7 +275,7 @@ def test_resolve_flow(
                     "flow": Flow(
                         nodes={
                             "foo": Node(
-                                target="t",
+                                recipe="t",
                                 args={"foo": "bar"},
                                 envs={"FOO": "BAR"},
                                 triggers=("r",),
@@ -286,7 +286,7 @@ def test_resolve_flow(
                         envs={"BAZ": "QUX"},
                     )
                 },
-                targets={"t": Target(commands="echo")},
+                recipes={"t": Recipe(commands="echo")},
                 triggers={"r": Restart()},
             ),
             {
@@ -294,7 +294,7 @@ def test_resolve_flow(
                     nodes={
                         "foo": ResolvedNode(
                             id="foo",
-                            target=Target(commands="echo"),
+                            recipe=Recipe(commands="echo"),
                             args={"foo": "bar"},
                             envs={"FOO": "BAR"},
                             triggers=(Restart(),),
@@ -338,7 +338,7 @@ after = After(after=("foo",))
 def test_resolved_node_once(triggers: tuple[AnyTrigger, ...], expected: tuple[AnyTrigger, ...]) -> None:
     node = ResolvedNode(
         id="foo",
-        target=Target(commands="echo"),
+        recipe=Recipe(commands="echo"),
         triggers=triggers,
         color=color,
     )
@@ -351,13 +351,13 @@ def test_resolved_flow_once() -> None:
         nodes={
             "foo": ResolvedNode(
                 id="foo",
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(Restart(),),
                 color=color,
             ),
             "bar": ResolvedNode(
                 id="bar",
-                target=Target(commands="echo"),
+                recipe=Recipe(commands="echo"),
                 triggers=(After(after=("foo",)),),
                 color=color,
             ),

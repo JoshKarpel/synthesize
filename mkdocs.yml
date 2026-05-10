@@ -91,6 +91,6 @@ nav:
   - Introduction: index.md
   - config.md
   - flows.md
-  - targets.md
+  - recipes.md
   - triggers.md
   - changelog.md

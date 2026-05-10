@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from synthesize.config import Envs, ResolvedNode, Target, random_color
+from synthesize.config import Envs, Recipe, ResolvedNode, random_color
 from synthesize.execution import OUTPUT_BUFFER_SIZE, Execution
 from synthesize.messages import (
     Debug,
@@ -20,7 +20,7 @@ color = random_color()
 async def test_execution_lifecycle(tmp_path: Path) -> None:
     node = ResolvedNode(
         id="foo",
-        target=Target(commands="echo 'hi'"),
+        recipe=Recipe(commands="echo 'hi'"),
         color=color,
     )
 
@@ -62,7 +62,7 @@ async def test_execution_lifecycle(tmp_path: Path) -> None:
 async def test_termination_before_completion(tmp_path: Path) -> None:
     node = ResolvedNode(
         id="foo",
-        target=Target(commands="sleep 10 && echo 'hi'"),
+        recipe=Recipe(commands="sleep 10 && echo 'hi'"),
         color=color,
     )
 
@@ -99,7 +99,7 @@ async def test_termination_before_completion(tmp_path: Path) -> None:
 async def test_termination_after_completion(tmp_path: Path) -> None:
     node = ResolvedNode(
         id="foo",
-        target=Target(commands="echo 'hi'"),
+        recipe=Recipe(commands="echo 'hi'"),
         color=color,
     )
 
@@ -123,7 +123,7 @@ async def test_termination_after_completion(tmp_path: Path) -> None:
 async def test_execution_kill(tmp_path: Path) -> None:
     node = ResolvedNode(
         id="foo",
-        target=Target(commands="sleep 10 && echo 'hi'"),
+        recipe=Recipe(commands="sleep 10 && echo 'hi'"),
         color=color,
     )
 
@@ -160,7 +160,7 @@ async def test_execution_kill(tmp_path: Path) -> None:
 async def test_kill_after_completion(tmp_path: Path) -> None:
     node = ResolvedNode(
         id="foo",
-        target=Target(commands="echo 'hi'"),
+        recipe=Recipe(commands="echo 'hi'"),
         color=color,
     )
 
@@ -187,7 +187,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo $FORCE_COLOR"),
+                recipe=Recipe(commands="echo $FORCE_COLOR"),
                 color=color,
             ),
             Envs(),
@@ -196,7 +196,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo $COLUMNS"),
+                recipe=Recipe(commands="echo $COLUMNS"),
                 color=color,
             ),
             Envs(),
@@ -205,7 +205,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo $SYNTH_NODE_ID"),
+                recipe=Recipe(commands="echo $SYNTH_NODE_ID"),
                 color=color,
             ),
             Envs(),
@@ -214,7 +214,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo $FOO"),
+                recipe=Recipe(commands="echo $FOO"),
                 envs=Envs({"FOO": "bar"}),
                 color=color,
             ),
@@ -224,7 +224,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo $FOO"),
+                recipe=Recipe(commands="echo $FOO"),
                 color=color,
             ),
             Envs({"FOO": "baz"}),
@@ -233,7 +233,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(commands="echo $FOO", envs={"FOO": "bar"}),
+                recipe=Recipe(commands="echo $FOO", envs={"FOO": "bar"}),
                 color=color,
             ),
             Envs({"FOO": "baz"}),
@@ -242,7 +242,7 @@ async def test_kill_after_completion(tmp_path: Path) -> None:
         (
             ResolvedNode(
                 id="foo",
-                target=Target(
+                recipe=Recipe(
                     commands="echo $A $B $C",
                     envs={
                         "A": "2",
@@ -306,7 +306,7 @@ async def test_very_long_lines_dont_break_reader_but_might_not_be_emitted(tmp_pa
     expected = "a" * line_length
     node = ResolvedNode(
         id="foo",
-        target=Target(commands=f"echo {expected}"),
+        recipe=Recipe(commands=f"echo {expected}"),
         color=color,
     )
 
