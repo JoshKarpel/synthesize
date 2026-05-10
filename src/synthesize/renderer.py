@@ -44,7 +44,7 @@ class Renderer:
         t = self.settings.timestamps
         base = ts.strftime("%Y-%m-%d %H:%M:%S" if t.include_date else "%H:%M:%S")
         if t.sub_second_digits > 0:
-            return f"{base}.{f'{ts.microsecond:06d}'[:t.sub_second_digits]}"
+            return f"{base}.{f'{ts.microsecond:06d}'[: t.sub_second_digits]}"
         return base
 
     def format_prefix(self, id: str, ts: datetime) -> str:
@@ -157,7 +157,7 @@ class Renderer:
                     (node.id, node.color),
                     f" (pid {pid}) exited with code ",
                     (str(exit_code), "green" if exit_code == 0 else "red"),
-                    f" in {duration.total_seconds() :.3f} seconds",
+                    f" in {duration.total_seconds():.3f} seconds",
                 )
             case WatchPathChanged(node=node):
                 changes = Text(" ").join(Text(path, style=CHANGE_TO_STYLE[change]) for change, path in message.changes)
