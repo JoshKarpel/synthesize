@@ -67,7 +67,7 @@ Released `2024-07-07`
 - [#30](https://github.com/JoshKarpel/synthesize/pull/30)
   Reorganized configuration to separate targets,
   triggers (formerly "lifecycles"),
-  and flows (graphs of targets and triggers)."
+  and flows (graphs of targets and triggers).
 - [#41](https://github.com/JoshKarpel/synthesize/pull/41)
   Execution duration is printed in the completion message.
 - [#49](https://github.com/JoshKarpel/synthesize/pull/49)
