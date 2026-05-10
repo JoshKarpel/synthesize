@@ -15,7 +15,7 @@ from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
 
-from synthesize.config import Config
+from synthesize.config import Config, Settings
 from synthesize.orchestrator import Orchestrator
 from synthesize.state import CyclicFlowDetected
 
@@ -50,6 +50,13 @@ def run(
         default=False,
         help="If enabled, do not run actually run the flow.",
     ),
+    setting: list[str] = Option(
+        [],
+        "-s",
+        "--set",
+        "--setting",
+        help="Override a setting from the config file, e.g. -s prefix_format='{timestamp:%H:%M:%S.%f} {id}  '.",
+    ),
 ) -> None:
     start_time = monotonic()
 
@@ -64,6 +71,29 @@ def run(
             loc = ".".join(map(str, err["loc"]))
             msg = err["msg"]
             console.print(f"[red]ERROR[/red] {loc} -> {msg}")
+        raise Exit(code=1)
+
+    settings_dict = parsed_config.settings.model_dump()
+    for s in setting:
+        if "=" not in s:
+            console.print(f"[red]ERROR[/red] invalid setting {s!r}: must be in key=value format")
+            raise Exit(code=1)
+        k, v = s.split("=", maxsplit=1)
+        node = settings_dict
+        parts = k.split(".")
+        for part in parts[:-1]:
+            if not isinstance(node.get(part), dict):
+                node[part] = {}
+            node = node[part]
+        node[parts[-1]] = v
+
+    try:
+        effective_settings = Settings.model_validate(settings_dict)
+    except ValidationError as e:
+        for err in e.errors():
+            loc = ".".join(map(str, err["loc"]))
+            msg = err["msg"]
+            console.print(f"[red]ERROR[/red] setting {loc} -> {msg}")
         raise Exit(code=1)
 
     if dry:
@@ -101,7 +131,7 @@ def run(
         return
 
     try:
-        controller = Orchestrator(flow=selected_flow, console=console)
+        controller = Orchestrator(flow=selected_flow, console=console, settings=effective_settings)
     except CyclicFlowDetected as e:
         console.print(
             Text(

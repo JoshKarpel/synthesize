@@ -16,6 +16,7 @@ from synthesize.config import (
     ResolvedFlow,
     ResolvedNode,
     Restart,
+    Settings,
     Watch,
     random_color,
 )
@@ -369,3 +370,21 @@ def test_resolved_flow_once() -> None:
     assert len(once_flow.nodes) == 2
     assert once_flow.nodes["foo"].triggers == (Once(),)
     assert once_flow.nodes["bar"].triggers == (After(after=("foo",)),)
+
+
+def test_settings_defaults() -> None:
+    s = Settings()
+    assert s.timestamps.sub_second_digits == 0
+    assert s.timestamps.include_date is False
+
+
+def test_settings_can_be_overridden_in_config_yaml() -> None:
+    config = Config.model_validate_yaml("""
+settings:
+  timestamps:
+    sub_second_digits: 3
+    include_date: true
+flows: {}
+""")
+    assert config.settings.timestamps.sub_second_digits == 3
+    assert config.settings.timestamps.include_date is True

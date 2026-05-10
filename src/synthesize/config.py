@@ -320,6 +320,27 @@ class Flow(Model):
         )
 
 
+class TimestampSettings(Model):
+    sub_second_digits: Annotated[
+        int,
+        Field(
+            ge=0,
+            le=6,
+            description="The number of sub-second digits to show in timestamps (0-6).",
+        ),
+    ] = 0
+    include_date: Annotated[
+        bool,
+        Field(
+            description="If true, include the date (YYYY-MM-DD) in timestamps.",
+        ),
+    ] = False
+
+
+class Settings(Model):
+    timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
+
+
 class Config(Model):
     flows: Annotated[
         Mapping[ID, Flow],
@@ -339,6 +360,12 @@ class Config(Model):
             description="A mapping of IDs to triggers.",
         ),
     ] = {}
+    settings: Annotated[
+        Settings,
+        Field(
+            description="Global settings.",
+        ),
+    ] = Field(default_factory=Settings)
 
     @classmethod
     def from_file(cls, file: Path) -> Config:
