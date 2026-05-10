@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- [#237](https://github.com/JoshKarpel/synthesize/issues/237)
+  Updated the recommended installation method from `pipx` to `uv tool install`,
+  with alternatives for `uvx` and `uv add --dev`.
+
 ## `0.0.6`
 
 ### Added

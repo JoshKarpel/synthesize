@@ -41,10 +41,22 @@ As an example, here is Synthesize's own `synth.yaml` configuration file:
 
 Synthesize is [available on PyPI](https://pypi.org/project/synthesize/).
 
-We recommend installing Synthesize via `pipx`:
+We recommend installing Synthesize as a [uv tool](https://docs.astral.sh/uv/guides/tools/):
 
 ```bash
-pipx install synthesize
+uv tool install synthesize
+```
+
+Or to try it out without a permanent install using [`uvx`](https://docs.astral.sh/uv/guides/tools/#running-tools):
+
+```bash
+uvx synthesize --help
+```
+
+Or to add it as a [development dependency](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies) in a uv project:
+
+```bash
+uv add --dev synthesize
 ```
 
 Then run
