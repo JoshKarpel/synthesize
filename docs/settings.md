@@ -14,3 +14,7 @@ synth -s timestamps.sub-second-digits=3 -s timestamps.include-date=true
 ## Timestamps
 
 @schema(synthesize.config, TimestampSettings)
+
+## `.env`
+
+@schema(synthesize.config, DotEnvSettings)

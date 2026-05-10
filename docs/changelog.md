@@ -4,6 +4,13 @@
 
 ### Added
 
+- [#233](https://github.com/JoshKarpel/synthesize/issues/233)
+  Added support for loading `.env` files via [python-dotenv](https://pypi.org/project/python-dotenv/).
+  A new `settings.dot_env` sub-section controls the behavior:
+  `dot_env.load` (default `true`) enables loading, and `dot_env.file` (default `.env`) sets the filename,
+  resolved relative to the config file.
+  Both can be overridden at run time with `-s dot_env.load=false` or `-s dot_env.file=.custom-env`.
+
 - [#247](https://github.com/JoshKarpel/synthesize/pull/247)
   Added a `settings` section to the configuration file with a `timestamps` sub-section.
   `timestamps.sub_second_digits` (0-6, default 0) controls how many sub-second digits appear in timestamps,
