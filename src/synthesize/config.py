@@ -15,7 +15,7 @@ import yaml
 from identify.identify import tags_from_path
 from jinja2 import Environment
 from networkx import DiGraph
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from rich.color import Color
 from typing_extensions import assert_never
 
@@ -390,6 +390,15 @@ class Settings(Model):
         return Settings.model_validate(d)
 
 
+class ResolvedConfig(Model):
+    flows: Mapping[ID, ResolvedFlow]
+    default_flow_name: Annotated[
+        str,
+        Field(description="The name of the default flow."),
+    ]
+    settings: Settings
+
+
 class Config(Model):
     flows: Annotated[
         Mapping[ID, Flow],
@@ -416,6 +425,12 @@ class Config(Model):
         ),
     ] = Field(default_factory=Settings)
 
+    @model_validator(mode="after")
+    def validate_has_flows(self) -> Config:
+        if not self.flows:
+            raise ValueError("at least one flow must be defined")
+        return self
+
     @classmethod
     def from_file(cls, file: Path) -> Config:
         tags = tags_from_path(str(file))
@@ -425,5 +440,19 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self) -> Mapping[ID, ResolvedFlow]:
-        return {id: flow.resolve(self.recipes, self.triggers) for id, flow in self.flows.items()}
+    def resolve(self, setting_overrides: list[str] = []) -> ResolvedConfig:
+        settings = self.settings.with_overrides(setting_overrides)
+        flows = {id: flow.resolve(self.recipes, self.triggers) for id, flow in self.flows.items()}
+
+        if settings.default_flow is not None:
+            if settings.default_flow not in flows:
+                raise ValueError(
+                    f"default flow '{settings.default_flow}' does not exist; available flows: {', '.join(flows)}"
+                )
+            default_flow_name = settings.default_flow
+        elif DEFAULT_FLOW_NAME in flows:
+            default_flow_name = DEFAULT_FLOW_NAME
+        else:
+            default_flow_name = next(iter(flows))
+
+        return ResolvedConfig(flows=flows, default_flow_name=default_flow_name, settings=settings)

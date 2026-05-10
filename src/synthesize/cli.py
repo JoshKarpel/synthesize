@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
 from time import monotonic
@@ -14,13 +13,14 @@ from more_itertools import mark_ends
 from pydantic import ValidationError
 from rich.console import Console
 from rich.json import JSON
+from rich.markup import escape
 from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
 from typing_extensions import assert_never
 
-from synthesize.config import DEFAULT_FLOW_NAME, Config, ResolvedFlow, Settings
+from synthesize.config import Config, ResolvedConfig, ResolvedFlow
 from synthesize.orchestrator import Orchestrator
 from synthesize.state import CyclicFlowDetected
 
@@ -74,27 +74,23 @@ def run(
 
     config_path, parsed_config = _load_config(config, console)
 
-    effective_settings = _apply_settings(parsed_config, setting, console)
+    resolved = _resolve(parsed_config, setting, console)
 
-    if effective_settings.dot_env.load:
-        load_dotenv(config_path.parent / effective_settings.dot_env.file)
+    if resolved.settings.dot_env.load:
+        load_dotenv(config_path.parent / resolved.settings.dot_env.file)
 
     if dry:
         console.print(
             Panel(
                 JSON(
-                    parsed_config.model_copy(update={"settings": effective_settings}).model_dump_json(
-                        exclude_unset=True
-                    )
+                    parsed_config.model_copy(update={"settings": resolved.settings}).model_dump_json(exclude_unset=True)
                 ),
                 title="Configuration",
                 title_align="left",
             )
         )
 
-    resolved = parsed_config.resolve()
-
-    selected_flow = _select_flow(resolved, flow, effective_settings, console)
+    selected_flow = _select_flow(resolved, flow, console)
 
     if once:
         selected_flow = selected_flow.once()
@@ -103,7 +99,7 @@ def run(
         return
 
     try:
-        controller = Orchestrator(flow=selected_flow, console=console, settings=effective_settings)
+        controller = Orchestrator(flow=selected_flow, console=console, settings=resolved.settings)
     except CyclicFlowDetected as e:
         console.print(
             Text(
@@ -133,27 +129,25 @@ def list_flows(
         Option(help="If enabled, show each flow's nodes with their triggers and commands."),
     ] = False,
 ) -> None:
-    """List the flows defined in the config file."""
+    """List the flows defined in the config file. The default flow is marked with [default]."""
     console = Console()
 
     _, parsed_config = _load_config(config, console)
 
-    resolved = parsed_config.resolve()
-
-    default_flow_name = _default_flow_name(resolved, parsed_config.settings)
+    resolved = _resolve(parsed_config, [], console)
 
     for is_first, is_last, (name, flow) in mark_ends(parsed_config.flows.items()):
         if details and not is_first:
             console.print()
 
-        marker = " [bold green]*[/bold green]" if name == default_flow_name else ""
+        marker = f" [dim]{escape('[default]')}[/dim]" if name == resolved.default_flow_name else ""
         if flow.description:
             console.print(f"{name}{marker}  [dim]{flow.description}[/dim]")
         else:
             console.print(f"{name}{marker}")
 
         if details:
-            for node in resolved[name].nodes.values():
+            for node in resolved.flows[name].nodes.values():
                 triggers_str = ", ".join(type(t).__name__.lower() for t in node.triggers)
                 lines = node.recipe.commands.strip().splitlines()
                 console.print(f"  [dim]{node.id}  ({triggers_str})[/dim]")
@@ -180,9 +174,9 @@ def diagram(
 
     _, parsed_config = _load_config(config, console)
 
-    resolved = parsed_config.resolve()
+    resolved = _resolve(parsed_config, [], console)
 
-    selected_flow = _select_flow(resolved, flow, parsed_config.settings, console)
+    selected_flow = _select_flow(resolved, flow, console)
 
     if once:
         selected_flow = selected_flow.once()
@@ -194,9 +188,9 @@ def diagram(
             assert_never(format)
 
 
-def _apply_settings(parsed_config: Config, setting: list[str], console: Console) -> Settings:
+def _resolve(parsed_config: Config, setting_overrides: list[str], console: Console) -> ResolvedConfig:
     try:
-        return parsed_config.settings.with_overrides(setting)
+        return parsed_config.resolve(setting_overrides)
     except ValueError as e:
         console.print(f"[red]ERROR[/red] {e}")
         raise Exit(code=1)
@@ -208,36 +202,15 @@ def _apply_settings(parsed_config: Config, setting: list[str], console: Console)
         raise Exit(code=1)
 
 
-def _default_flow_name(resolved: Mapping[str, ResolvedFlow], settings: Settings) -> Optional[str]:
-    if settings.default_flow is not None:
-        return settings.default_flow if settings.default_flow in resolved else None
-    if DEFAULT_FLOW_NAME in resolved:
-        return DEFAULT_FLOW_NAME
-    return next(iter(resolved), None)
-
-
-def _select_flow(
-    resolved: Mapping[str, ResolvedFlow],
-    flow: Optional[str],
-    settings: Settings,
-    console: Console,
-) -> ResolvedFlow:
+def _select_flow(resolved: ResolvedConfig, flow: Optional[str], console: Console) -> ResolvedFlow:
     sep = "\n  "
-    available_flows = sep + sep.join(resolved.keys())
+    available_flows = sep + sep.join(resolved.flows.keys())
 
     if flow is None:
-        flow = _default_flow_name(resolved, settings)
-        if flow is None:
-            console.print(
-                Text(
-                    f"Error: failed to determine a default flow; '{settings.default_flow}' does not exist. Available flows:{available_flows}",
-                    style=Style(color="red"),
-                )
-            )
-            raise Exit(code=1)
+        flow = resolved.default_flow_name
 
     try:
-        return resolved[flow]
+        return resolved.flows[flow]
     except KeyError:
         console.print(
             Text(

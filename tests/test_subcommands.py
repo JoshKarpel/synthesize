@@ -23,7 +23,7 @@ def test_list_multiple_flows(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build *", "check", "dev"]
+    assert result.output.splitlines() == ["build [default]", "check", "dev"]
 
 
 def test_list_marks_flow_named_default_as_default(tmp_path: Path) -> None:
@@ -33,7 +33,7 @@ def test_list_marks_flow_named_default_as_default(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build", "default *", "dev"]
+    assert result.output.splitlines() == ["build", "default [default]", "dev"]
 
 
 def test_list_marks_default_flow_setting_as_default(tmp_path: Path) -> None:
@@ -43,17 +43,17 @@ def test_list_marks_default_flow_setting_as_default(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build", "default", "dev *"]
+    assert result.output.splitlines() == ["build", "default", "dev [default]"]
 
 
-def test_list_shows_no_default_marker_when_default_flow_does_not_exist(tmp_path: Path) -> None:
+def test_list_errors_when_default_flow_does_not_exist(tmp_path: Path) -> None:
     config_file = tmp_path / "synth.yaml"
     config_file.write_text("settings:\n  default_flow: nonexistent\nflows:\n  build: {}\n  dev: {}")
 
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
-    assert result.exit_code == 0
-    assert result.output.splitlines() == ["build", "dev"]
+    assert result.exit_code == 1
+    assert "nonexistent" in result.output
 
 
 def test_run_errors_when_default_flow_does_not_exist(tmp_path: Path) -> None:
@@ -63,7 +63,7 @@ def test_run_errors_when_default_flow_does_not_exist(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["run", "--config", str(config_file)])
 
     assert result.exit_code == 1
-    assert "failed to determine a default flow" in result.output
+    assert "nonexistent" in result.output
 
 
 def test_list_shows_description(tmp_path: Path) -> None:
@@ -103,3 +103,23 @@ def test_diagram_unknown_flow_exits_with_error() -> None:
     result = CliRunner().invoke(cli, ["diagram", "nonexistent", "--config", str(EXAMPLES_DIR / "after.yaml")])
 
     assert result.exit_code == 1
+
+
+def test_diagram_uses_default_flow_when_unspecified(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  default:\n    nodes:\n      build:\n        recipe:\n          commands: echo hi")
+
+    result = CliRunner().invoke(cli, ["diagram", "--config", str(config_file)])
+
+    assert result.exit_code == 0
+    assert "flowchart" in result.output
+
+
+def test_diagram_errors_when_default_flow_does_not_exist(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("settings:\n  default_flow: nonexistent\nflows:\n  build: {}")
+
+    result = CliRunner().invoke(cli, ["diagram", "--config", str(config_file)])
+
+    assert result.exit_code == 1
+    assert "nonexistent" in result.output
