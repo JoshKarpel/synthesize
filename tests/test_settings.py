@@ -38,7 +38,7 @@ def test_dot_env_loaded_by_default(tmp_path: Path, mocker: MockerFixture) -> Non
     config_file = tmp_path / "synth.yaml"
     config_file.write_text("flows:\n  default: {}")
 
-    result = CliRunner().invoke(cli, ["--config", str(config_file), "--dry"])
+    result = CliRunner().invoke(cli, ["run", "--config", str(config_file), "--dry"])
 
     assert result.exit_code == 0
     mock_load.assert_called_once_with(tmp_path / ".env")
@@ -49,7 +49,7 @@ def test_dot_env_loading_disabled_via_setting(tmp_path: Path, mocker: MockerFixt
     config_file = tmp_path / "synth.yaml"
     config_file.write_text("flows:\n  default: {}")
 
-    result = CliRunner().invoke(cli, ["--config", str(config_file), "--dry", "--setting", "dot_env.load=false"])
+    result = CliRunner().invoke(cli, ["run", "--config", str(config_file), "--dry", "--setting", "dot_env.load=false"])
 
     assert result.exit_code == 0
     mock_load.assert_not_called()
@@ -60,7 +60,9 @@ def test_dot_env_file_customized_via_setting(tmp_path: Path, mocker: MockerFixtu
     config_file = tmp_path / "synth.yaml"
     config_file.write_text("flows:\n  default: {}")
 
-    result = CliRunner().invoke(cli, ["--config", str(config_file), "--dry", "--setting", "dot_env.file=.custom-env"])
+    result = CliRunner().invoke(
+        cli, ["run", "--config", str(config_file), "--dry", "--setting", "dot_env.file=.custom-env"]
+    )
 
     assert result.exit_code == 0
     mock_load.assert_called_once_with(tmp_path / ".custom-env")

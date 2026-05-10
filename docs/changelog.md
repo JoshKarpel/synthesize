@@ -4,6 +4,33 @@
 
 ### Added
 
+- [#253](https://github.com/JoshKarpel/synthesize/pull/253)
+  The `synth list` subcommand lists the flows defined in the config file.
+  The `--details` flag additionally shows each flow's nodes with their triggers and commands.
+
+- [#253](https://github.com/JoshKarpel/synthesize/pull/253)
+  The `synth diagram` subcommand outputs a Mermaid diagram describing a flow,
+  replacing the `--mermaid` flag that was previously on `synth run`.
+  A `--format` flag controls the output format (currently only `mermaid`).
+
+- [#253](https://github.com/JoshKarpel/synthesize/pull/253)
+  Flows now support an optional `description` field, displayed by `synth list`.
+
+- [#253](https://github.com/JoshKarpel/synthesize/pull/253)
+  Added a [Using Synthesize with Other Tools](./other-tools.md) documentation page
+  covering integration with CI systems and AI coding agents.
+
+### Changed
+
+- [#253](https://github.com/JoshKarpel/synthesize/pull/253)
+  `synth` is now a multi-command app.
+  Running a flow now requires the explicit `synth run [FLOW]` form;
+  `synth [FLOW]` no longer works.
+
+- [#253](https://github.com/JoshKarpel/synthesize/pull/253)
+  The recommended installation method is now `uv add --dev synthesize`,
+  adding Synthesize as a development dependency to your project.
+
 - [#233](https://github.com/JoshKarpel/synthesize/issues/233)
   Added support for loading `.env` files via [python-dotenv](https://pypi.org/project/python-dotenv/).
   A new `settings.dot_env` sub-section controls the behavior:
@@ -23,6 +50,7 @@
 - [#244](https://github.com/JoshKarpel/synthesize/pull/244)
   Updated the recommended installation method from `pipx` to `uv tool install`,
   with alternatives for `uvx` and `uv add --dev`.
+
 - [#246](https://github.com/JoshKarpel/synthesize/pull/246)
   Renamed `target`/`targets` to `recipe`/`recipes` in the configuration schema,
   matching the terminology used by [`just`](https://github.com/casey/just).

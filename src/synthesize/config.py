@@ -293,6 +293,12 @@ class ResolvedFlow(Model):
 
 
 class Flow(Model):
+    description: Annotated[
+        str | None,
+        Field(
+            description="Optional description of this flow, shown in `synth list`.",
+        ),
+    ] = None
     nodes: Annotated[
         Mapping[ID, Node],
         Field(

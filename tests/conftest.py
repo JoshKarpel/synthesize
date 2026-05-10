@@ -14,7 +14,7 @@ def run_example(example: str, extra_args: tuple[str, ...] = ()) -> Result:
     example_path = EXAMPLES_DIR / example
     assert example_path.exists(), f"Example file {example_path} does not exist."
 
-    result = runner.invoke(cli, ["--config", str(example_path), *extra_args])
+    result = runner.invoke(cli, ["run", "--config", str(example_path), *extra_args])
 
     print(result.stdout)
 

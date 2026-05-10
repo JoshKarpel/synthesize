@@ -1,7 +1,6 @@
 # Synthesize
 
-Synthesize is a tool for managing long-lived development workflows that involve multiple tools executing concurrently,
-each of which might have bespoke conditions around when and how it needs to be run or re-run.
+Synthesize is a DAG-shaped workflow runner for local development.
 
 In Synthesize, a **flow** is a graph (potentially disjoint) of **nodes**,
 each of which runs a **recipe** whenever one of that node's **triggers** activates.
@@ -18,6 +17,7 @@ allowing for complex nodes like
 
 ## Features
 
+- Nodes naturally run concurrently based on their triggers.
 - Recipe and trigger definitions can be factored out and shared across multiple nodes and flows.
 - Recipes are just shell commands, so you can use any tools you'd like. Synthesize works with your existing tools, it doesn't replace them.
 - Recipes can be parameterized with arguments (each recipe is actually a [Jinja template](https://jinja.palletsprojects.com/)) and environment variables.
@@ -39,29 +39,13 @@ As an example, here is Synthesize's own `synth.yaml` configuration file:
 
 ## Installation
 
-Synthesize is [available on PyPI](https://pypi.org/project/synthesize/).
-
-We recommend installing Synthesize as a [`uv` tool](https://docs.astral.sh/uv/guides/tools/):
-
-```bash
-uv tool install synthesize
-```
-
-Then run `synth --help` to get started.
-
-Or to try it out without a permanent install using [`uvx`](https://docs.astral.sh/uv/guides/tools/#running-tools):
-
-```bash
-uvx --from synthesize synth --help
-```
-
-Or to add it as a [development dependency](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies) in a uv project:
+Add Synthesize as a [development dependency](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies) in your project:
 
 ```bash
 uv add --dev synthesize
 ```
 
-Then use `uv run synth` to run it within the project environment.
+Then use `uv run synth --help` to see what's available.
 
 !!! warning "Synthesize does not work on Windows"
 

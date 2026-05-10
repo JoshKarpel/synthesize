@@ -29,7 +29,7 @@ flows:
 """)
     (tmp_path / ".env").write_text("SYNTH_TEST_VAR=hello_from_dotenv\n")
 
-    result = CliRunner().invoke(cli, ["--config", str(config_file)])
+    result = CliRunner().invoke(cli, ["run", "--config", str(config_file)])
 
     assert result.exit_code == 0
     assert "hello_from_dotenv" in result.stdout

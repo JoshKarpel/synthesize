@@ -6,7 +6,7 @@ Values are parsed as YAML, so `3` is an integer, `true` is a boolean, and so on.
 Dashes in key segments are normalized to underscores, so `sub-second-digits` and `sub_second_digits` are equivalent:
 
 ```
-synth -s timestamps.sub-second-digits=3 -s timestamps.include-date=true
+synth run -s timestamps.sub-second-digits=3 -s timestamps.include-date=true
 ```
 
 @schema(synthesize.config, Settings)
