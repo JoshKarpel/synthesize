@@ -361,8 +361,12 @@ class DotEnvSettings(Model):
 
 
 class Settings(Model):
-    timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
+    default_flow: Annotated[
+        str,
+        Field(description="The name of the default flow to run when no flow is specified."),
+    ] = "default"
     dot_env: DotEnvSettings = Field(default_factory=DotEnvSettings)
+    timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
 
     def with_overrides(self, overrides: list[str]) -> Settings:
         d = self.model_dump()

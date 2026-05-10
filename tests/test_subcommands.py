@@ -23,7 +23,27 @@ def test_list_multiple_flows(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build", "check", "dev"]
+    assert result.output.splitlines() == ["build *", "check", "dev"]
+
+
+def test_list_marks_flow_named_default_as_default(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  build: {}\n  default: {}\n  dev: {}")
+
+    result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
+
+    assert result.exit_code == 0
+    assert result.output.splitlines() == ["build", "default *", "dev"]
+
+
+def test_list_marks_default_flow_setting_as_default(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("settings:\n  default_flow: dev\nflows:\n  build: {}\n  default: {}\n  dev: {}")
+
+    result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
+
+    assert result.exit_code == 0
+    assert result.output.splitlines() == ["build", "default", "dev *"]
 
 
 def test_list_shows_description(tmp_path: Path) -> None:

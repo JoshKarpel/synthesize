@@ -1,5 +1,5 @@
 flows:
-  default:
+  dev:
     description: run tests, type-checking, and docs dev server
     nodes:
       tests:

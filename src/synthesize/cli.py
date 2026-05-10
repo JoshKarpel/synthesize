@@ -10,7 +10,7 @@ from typing import Annotated, Optional
 import typer.rich_utils as ru
 from click.exceptions import Exit
 from dotenv import load_dotenv
-from more_itertools import mark_ends
+from more_itertools import first, mark_ends
 from pydantic import ValidationError
 from rich.console import Console
 from rich.json import JSON
@@ -50,7 +50,7 @@ OnceOption = Annotated[
 
 @cli.command()
 def run(
-    flow: Annotated[str, Argument(help="The flow to execute.")] = "default",
+    flow: Annotated[Optional[str], Argument(help="The flow to execute.")] = None,
     once: OnceOption = False,
     setting: Annotated[
         list[str],
@@ -94,7 +94,7 @@ def run(
 
     resolved = parsed_config.resolve()
 
-    selected_flow = _select_flow(resolved, flow, console)
+    selected_flow = _select_flow(resolved, flow, effective_settings, console)
 
     if once:
         selected_flow = selected_flow.once()
@@ -140,14 +140,17 @@ def list_flows(
 
     resolved = parsed_config.resolve()
 
+    default_flow_name = _default_flow_name(resolved, parsed_config.settings)
+
     for is_first, is_last, (name, flow) in mark_ends(parsed_config.flows.items()):
         if details and not is_first:
             console.print()
 
+        marker = " [bold green]*[/bold green]" if name == default_flow_name else ""
         if flow.description:
-            console.print(f"{name}  [dim]{flow.description}[/dim]")
+            console.print(f"{name}{marker}  [dim]{flow.description}[/dim]")
         else:
-            console.print(name)
+            console.print(f"{name}{marker}")
 
         if details:
             for node in resolved[name].nodes.values():
@@ -164,7 +167,7 @@ class DiagramFormat(str, Enum):
 
 @cli.command()
 def diagram(
-    flow: Annotated[str, Argument(help="The flow to diagram.")] = "default",
+    flow: Annotated[Optional[str], Argument(help="The flow to diagram.")] = None,
     once: OnceOption = False,
     format: Annotated[
         DiagramFormat,
@@ -179,7 +182,7 @@ def diagram(
 
     resolved = parsed_config.resolve()
 
-    selected_flow = _select_flow(resolved, flow, console)
+    selected_flow = _select_flow(resolved, flow, parsed_config.settings, console)
 
     if once:
         selected_flow = selected_flow.once()
@@ -205,19 +208,28 @@ def _apply_settings(parsed_config: Config, setting: list[str], console: Console)
         raise Exit(code=1)
 
 
+def _default_flow_name(resolved: Mapping[str, ResolvedFlow], settings: Settings) -> str:
+    if settings.default_flow in resolved:
+        return settings.default_flow
+    return first(resolved)
+
+
 def _select_flow(
     resolved: Mapping[str, ResolvedFlow],
-    flow: str,
+    flow: Optional[str],
+    settings: Settings,
     console: Console,
 ) -> ResolvedFlow:
+    name = flow if flow is not None else _default_flow_name(resolved, settings)
+
     try:
-        return resolved[flow]
+        return resolved[name]
     except KeyError:
         sep = "\n  "
         available_flows = sep + sep.join(resolved.keys())
         console.print(
             Text(
-                f"Error: no flow named '{flow}'. Available flows:{available_flows}",
+                f"Error: no flow named '{name}'. Available flows:{available_flows}",
                 style=Style(color="red"),
             )
         )
