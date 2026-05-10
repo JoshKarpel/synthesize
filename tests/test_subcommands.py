@@ -52,14 +52,14 @@ def test_list_details_shows_nodes(tmp_path: Path) -> None:
     assert "ruff check ." in result.output
 
 
-def test_mermaid_outputs_diagram() -> None:
-    result = CliRunner().invoke(cli, ["mermaid", "--config", str(EXAMPLES_DIR / "after.yaml")])
+def test_diagram_outputs_diagram() -> None:
+    result = CliRunner().invoke(cli, ["diagram", "--config", str(EXAMPLES_DIR / "after.yaml")])
 
     assert result.exit_code == 0
     assert "flowchart" in result.output
 
 
-def test_mermaid_unknown_flow_exits_with_error() -> None:
-    result = CliRunner().invoke(cli, ["mermaid", "nonexistent", "--config", str(EXAMPLES_DIR / "after.yaml")])
+def test_diagram_unknown_flow_exits_with_error() -> None:
+    result = CliRunner().invoke(cli, ["diagram", "nonexistent", "--config", str(EXAMPLES_DIR / "after.yaml")])
 
     assert result.exit_code == 1

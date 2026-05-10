@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
+from enum import Enum
 from pathlib import Path
 from time import monotonic
-from typing import Optional
+from typing import Annotated, Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
 from dotenv import load_dotenv
+from more_itertools import mark_ends
 from pydantic import ValidationError
 from rich.console import Console
 from rich.json import JSON
@@ -26,36 +28,45 @@ ru.STYLE_HELPTEXT = ""
 cli = Typer(pretty_exceptions_enable=False)
 
 
-@cli.command()
-def run(
-    flow: str = Argument(
-        default="default",
-        help="The flow to execute.",
-    ),
-    once: bool = Option(
-        default=False,
-        help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
-    ),
-    setting: list[str] = Option(
-        [],
-        "-s",
-        "--set",
-        "--setting",
-        help="Override a setting from the config file using a dotted path, e.g. `-s timestamps.sub_second_digits=3`.",
-    ),
-    config: Optional[Path] = Option(
-        default=None,
+ConfigOption = Annotated[
+    Optional[Path],
+    Option(
         exists=True,
         readable=True,
         show_default=True,
         envvar="SYNTHFILE",
-        help="The path to the configuration file to execute.",
+        help="The path to the configuration file.",
     ),
-    dry: bool = Option(
-        default=False,
-        help="If enabled, do not run actually run the flow.",
+]
+
+OnceOption = Annotated[
+    bool,
+    Option(
+        help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
     ),
+]
+
+
+@cli.command()
+def run(
+    flow: Annotated[str, Argument(help="The flow to execute.")] = "default",
+    once: OnceOption = False,
+    setting: Annotated[
+        list[str],
+        Option(
+            "-s",
+            "--set",
+            "--setting",
+            help="Override a setting from the config file using a dotted path, e.g. `-s timestamps.sub_second_digits=3`.",
+        ),
+    ] = [],
+    config: ConfigOption = None,
+    dry: Annotated[
+        bool,
+        Option(help="If enabled, print the parsed config and exit without running the flow."),
+    ] = False,
 ) -> None:
+    """Run a flow."""
     start_time = monotonic()
 
     console = Console()
@@ -115,26 +126,23 @@ def run(
 
 @cli.command("list")
 def list_flows(
-    config: Optional[Path] = Option(
-        default=None,
-        exists=True,
-        readable=True,
-        show_default=True,
-        envvar="SYNTHFILE",
-        help="The path to the configuration file.",
-    ),
-    details: bool = Option(
-        default=False,
-        help="If enabled, show each flow's nodes with their triggers and commands.",
-    ),
+    config: ConfigOption = None,
+    details: Annotated[
+        bool,
+        Option(help="If enabled, show each flow's nodes with their triggers and commands."),
+    ] = False,
 ) -> None:
+    """List the flows defined in the config file."""
     console = Console()
 
     _, parsed_config = _load_config(config, console)
 
     resolved = parsed_config.resolve() if details else None
 
-    for name, flow in parsed_config.flows.items():
+    for is_first, is_last, (name, flow) in mark_ends(parsed_config.flows.items()):
+        if details and not is_first and not is_last:
+            console.print()
+
         if flow.description:
             console.print(f"{name}  [dim]{flow.description}[/dim]")
         else:
@@ -149,25 +157,21 @@ def list_flows(
                     console.print(f"    {line}")
 
 
+class DiagramFormat(str, Enum):
+    mermaid = "mermaid"
+
+
 @cli.command()
-def mermaid(
-    flow: str = Argument(
-        default="default",
-        help="The flow to diagram.",
-    ),
-    once: bool = Option(
-        default=False,
-        help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
-    ),
-    config: Optional[Path] = Option(
-        default=None,
-        exists=True,
-        readable=True,
-        show_default=True,
-        envvar="SYNTHFILE",
-        help="The path to the configuration file.",
-    ),
+def diagram(
+    flow: Annotated[str, Argument(help="The flow to diagram.")] = "default",
+    once: OnceOption = False,
+    format: Annotated[
+        DiagramFormat,
+        Option(help="The output format for the diagram."),
+    ] = DiagramFormat.mermaid,
+    config: ConfigOption = None,
 ) -> None:
+    """Output a diagram describing a flow."""
     console = Console()
 
     _, parsed_config = _load_config(config, console)
