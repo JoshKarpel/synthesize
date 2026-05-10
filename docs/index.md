@@ -41,24 +41,32 @@ As an example, here is Synthesize's own `synth.yaml` configuration file:
 
 Synthesize is [available on PyPI](https://pypi.org/project/synthesize/).
 
-We recommend installing Synthesize via `pipx`:
+We recommend installing Synthesize as a [`uv` tool](https://docs.astral.sh/uv/guides/tools/):
 
 ```bash
-pipx install synthesize
+uv tool install synthesize
 ```
 
-Then run
+Then run `synth --help` to get started.
+
+Or to try it out without a permanent install using [`uvx`](https://docs.astral.sh/uv/guides/tools/#running-tools):
+
+```bash
+uvx --from synthesize synth --help
 ```
-synth --help
+
+Or to add it as a [development dependency](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies) in a uv project:
+
+```bash
+uv add --dev synthesize
 ```
-to get started.
+
+Then use `uv run synth` to run it within the project environment.
 
 !!! warning "Synthesize does not work on Windows"
 
     We recommend using the [Windows Subsystem for Linux (WSL)](https://learn.microsoft.com/en-us/windows/wsl/install)
     to run Synthesize on Windows.
-
-
 
 ## Inspirations
 
