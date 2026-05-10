@@ -140,7 +140,7 @@ def list_flows(
     resolved = parsed_config.resolve() if details else None
 
     for is_first, is_last, (name, flow) in mark_ends(parsed_config.flows.items()):
-        if details and not is_first and not is_last:
+        if details and not is_first:
             console.print()
 
         if flow.description:
@@ -148,7 +148,7 @@ def list_flows(
         else:
             console.print(name)
 
-        if details and resolved is not None:
+        if details:
             for node in resolved[name].nodes.values():
                 triggers_str = ", ".join(type(t).__name__.lower() for t in node.triggers)
                 lines = node.recipe.commands.strip().splitlines()
@@ -183,7 +183,7 @@ def diagram(
     if once:
         selected_flow = selected_flow.once()
 
-    print(selected_flow.mermaid())
+    print(selected_flow.mermaid())  # bare print keeps output clean for piping (e.g. the MkDocs hook)
 
 
 def _apply_settings(parsed_config: Config, setting: list[str], console: Console) -> Settings:
