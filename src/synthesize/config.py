@@ -47,22 +47,22 @@ def random_color() -> str:
 template_environment = Environment()
 
 
-class Target(Model):
-    commands: Annotated[str, Field(description="The commands to run for this target.")] = ""
+class Recipe(Model):
+    commands: Annotated[str, Field(description="The commands to run for this recipe.")] = ""
     args: Annotated[
         Args,
         Field(
-            description="Template arguments to apply to this target by default.",
+            description="Template arguments to apply to this recipe by default.",
         ),
     ] = {}
     envs: Annotated[
         Envs,
         Field(
-            description="Environment variables to apply to this target by default.",
+            description="Environment variables to apply to this recipe by default.",
         ),
     ] = {}
 
-    executable: Annotated[str, Field(description="The executable to run this target with.")] = "sh -eu"
+    executable: Annotated[str, Field(description="The executable to run this recipe with.")] = "sh -eu"
 
     @field_validator("commands")
     @classmethod
@@ -137,7 +137,7 @@ RepeatingTrigger = Union[
 class ResolvedNode(Model):
     id: str
 
-    target: Target
+    recipe: Recipe
     args: Annotated[
         Args,
         Field(
@@ -165,7 +165,7 @@ class ResolvedNode(Model):
 
         return ResolvedNode(
             id=self.id,
-            target=self.target,
+            recipe=self.recipe,
             args=self.args,
             envs=self.envs,
             triggers=triggers,
@@ -174,10 +174,10 @@ class ResolvedNode(Model):
 
 
 class Node(Model):
-    target: Annotated[
-        Target | ID,
+    recipe: Annotated[
+        Recipe | ID,
         Field(
-            description="The target to run for this node. It may either be the name of a pre-defined target, or a full target definition.",
+            description="The recipe to run for this node. It may either be the name of a pre-defined recipe, or a full recipe definition.",
         ),
     ]
     args: Annotated[
@@ -211,12 +211,12 @@ class Node(Model):
     def resolve(
         self,
         id: str,
-        targets: Mapping[str, Target],
+        recipes: Mapping[str, Recipe],
         triggers: Mapping[str, AnyTrigger],
     ) -> ResolvedNode:
         return ResolvedNode(
             id=id,
-            target=targets[self.target] if isinstance(self.target, str) else self.target,
+            recipe=recipes[self.recipe] if isinstance(self.recipe, str) else self.recipe,
             args=self.args,
             envs=self.envs,
             triggers=tuple(triggers[t] if isinstance(t, str) else t for t in self.triggers),
@@ -310,11 +310,11 @@ class Flow(Model):
 
     def resolve(
         self,
-        targets: Mapping[ID, Target],
+        recipes: Mapping[ID, Recipe],
         triggers: Mapping[ID, AnyTrigger],
     ) -> ResolvedFlow:
         return ResolvedFlow(
-            nodes={id: node.resolve(id, targets, triggers) for id, node in self.nodes.items()},
+            nodes={id: node.resolve(id, recipes, triggers) for id, node in self.nodes.items()},
             args=self.args,
             envs=self.envs,
         )
@@ -327,10 +327,10 @@ class Config(Model):
             description="A mapping of IDs to flows.",
         ),
     ] = {}
-    targets: Annotated[
-        Mapping[ID, Target],
+    recipes: Annotated[
+        Mapping[ID, Recipe],
         Field(
-            description="A mapping of IDs to targets.",
+            description="A mapping of IDs to recipes.",
         ),
     ] = {}
     triggers: Annotated[
@@ -350,4 +350,4 @@ class Config(Model):
             raise NotImplementedError("Currently, only YAML files are supported.")
 
     def resolve(self) -> Mapping[ID, ResolvedFlow]:
-        return {id: flow.resolve(self.targets, self.triggers) for id, flow in self.flows.items()}
+        return {id: flow.resolve(self.recipes, self.triggers) for id, flow in self.flows.items()}

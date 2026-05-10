@@ -2,20 +2,20 @@ flows:
   default:
     nodes:
       tests:
-        target: tests
+        recipe: tests
         triggers:
         - code-changes
       types:
-        target: types
+        recipe: types
         triggers:
         - code-changes
       docs:
-        target: docs
+        recipe: docs
         triggers:
         - delay: 1
         - watch: ["docs/hooks/"]
 
-targets:
+recipes:
   tests:
     commands: |
       pytest -vv --cov

@@ -2,21 +2,21 @@ flows:
   default:
     nodes:
       a:
-        target:
+        recipe:
           commands: |
             echo "Task A"
             sleep 1
         triggers:
           - after: [c]
       b:
-        target:
+        recipe:
           commands: |
             echo "Task B"
             sleep 1
         triggers:
           - after: [a]
       c:
-        target:
+        recipe:
           commands: |
             echo "Task C"
             sleep 1

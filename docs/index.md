@@ -4,24 +4,24 @@ Synthesize is a tool for managing long-lived development workflows that involve 
 each of which might have bespoke conditions around when and how it needs to be run or re-run.
 
 In Synthesize, a **flow** is a graph (potentially disjoint) of **nodes**,
-each of which runs a **target** whenever one of that node's **triggers** activates.
+each of which runs a **recipe** whenever one of that node's **triggers** activates.
 Synthesize has a wide variety of triggers:
 
-- Target `B` should run after target `A` runs.
-- Target `W` should run every time file `F` changes.
-- Target `R` should be restarted if it ever exits.
-- Target `O` should run once when the flow starts.
+- Recipe `B` should run after recipe `A` runs.
+- Recipe `W` should run every time file `F` changes.
+- Recipe `R` should be restarted if it ever exits.
+- Recipe `O` should run once when the flow starts.
 
-These can all coexist as part of same flow, and can even be combined for a single target,
+These can all coexist as part of same flow, and can even be combined for a single recipe,
 allowing for complex nodes like
-["restart target `W` if it exits or if file `F` changes"](./triggers.md#example-restarting-on-completion-or-config-changes).
+["restart recipe `W` if it exits or if file `F` changes"](./triggers.md#example-restarting-on-completion-or-config-changes).
 
 ## Features
 
-- Target and trigger definitions can be factored out and shared across multiple nodes and flows.
-- Targets are just shell commands, so you can use any tools you'd like. Synthesize works with your existing tools, it doesn't replace them.
-- Targets can be parameterized with arguments (each target is actually a [Jinja template](https://jinja.palletsprojects.com/)) and environment variables.
-  Arguments and environment variables can also be provided at the flow and target levels (most specific wins).
+- Recipe and trigger definitions can be factored out and shared across multiple nodes and flows.
+- Recipes are just shell commands, so you can use any tools you'd like. Synthesize works with your existing tools, it doesn't replace them.
+- Recipes can be parameterized with arguments (each recipe is actually a [Jinja template](https://jinja.palletsprojects.com/)) and environment variables.
+  Arguments and environment variables can also be provided at the flow and recipe levels (most specific wins).
 - Nodes can have multiple triggers, allowing you to express complex triggering conditions.
 - All command output is combined in a single output stream, with each node's output prefixed with a timestamp and its name.
 - The current time and the status of each node is displayed at the bottom of your terminal.

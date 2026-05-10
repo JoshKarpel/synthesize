@@ -2,7 +2,7 @@ flows:
   default:
     nodes:
       docs:
-        target:
+        recipe:
           commands: mkdocs serve --strict
         triggers:
         - delay: 1

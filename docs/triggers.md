@@ -85,7 +85,7 @@ we want the following things to all happen:
 - If neither of those happen, let `mkdocs serve` keep running forever.
 
 This is straightforward to express with Synthesize by using both restart and watch triggers
-for a target that run `mkdocs serve` (which blocks):
+for a recipe that runs `mkdocs serve` (which blocks):
 
 ```yaml
 --8<-- "docs/examples/restart-and-watch.yaml"

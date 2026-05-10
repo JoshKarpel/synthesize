@@ -2,25 +2,25 @@ flows:
   default:
     nodes:
       A:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
       B:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
       C:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
       D:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
         triggers:
         - after: [A, B]
       E:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
         triggers:
         - after: [C]
       F:
-        target: sleep-and-echo
+        recipe: sleep-and-echo
         triggers:
         - after: [D, E]
 
-targets:
+recipes:
   sleep-and-echo:
     commands: |
       sleep 1

@@ -7,6 +7,9 @@
 - [#244](https://github.com/JoshKarpel/synthesize/pull/244)
   Updated the recommended installation method from `pipx` to `uv tool install`,
   with alternatives for `uvx` and `uv add --dev`.
+- [#235](https://github.com/JoshKarpel/synthesize/issues/235)
+  Renamed `target`/`targets` to `recipe`/`recipes` in the configuration schema,
+  matching the terminology used by [`just`](https://github.com/casey/just).
 
 ## `0.0.6`
 
@@ -14,7 +17,7 @@
 
 - [#126](https://github.com/JoshKarpel/synthesize/pull/126)
   If no more work can be done in a flow, `synth` will exit.
-  If all targets ran and succeeded, the exit code will be `0`.
+  If all recipes ran and succeeded, the exit code will be `0`.
   Otherwise, the exit code will be `1`.
 - [#126](https://github.com/JoshKarpel/synthesize/pull/126)
   Added the `--once` option, which replaces all "repeating" triggers (like `watch` or `restart`) with `once`.
@@ -64,18 +67,18 @@ Released `2024-07-07`
   [#40](https://github.com/JoshKarpel/synthesize/pull/40)
   Allow injecting arguments
   (via [Jinja2 templates](https://jinja.palletsprojects.com/))
-  and environment variables into target commands.
+  and environment variables into recipe commands.
   Arguments and environment variables can be specified at either
-  the flow, node, or target level, with the most specific taking precedence.
+  the flow, node, or recipe level, with the most specific taking precedence.
 - [#43](https://github.com/JoshKarpel/synthesize/pull/43)
   Mermaid diagrams can be generated for a flow using the `--mermaid` option.
 
 ### Changed
 
 - [#30](https://github.com/JoshKarpel/synthesize/pull/30)
-  Reorganized configuration to separate targets,
+  Reorganized configuration to separate recipes,
   triggers (formerly "lifecycles"),
-  and flows (graphs of targets and triggers).
+  and flows (graphs of recipes and triggers).
 - [#41](https://github.com/JoshKarpel/synthesize/pull/41)
   Execution duration is printed in the completion message.
 - [#49](https://github.com/JoshKarpel/synthesize/pull/49)
@@ -92,5 +95,5 @@ Released `2023-02-12`
 
 ### Added
 
-- [#1](https://github.com/JoshKarpel/synthesize/pull/1) Core graph-of-targets data model and executor, with support for `once`, `restart`, and `watch` lifecycles.
+- [#1](https://github.com/JoshKarpel/synthesize/pull/1) Core graph-of-recipes data model and executor, with support for `once`, `restart`, and `watch` lifecycles.
 - [#1](https://github.com/JoshKarpel/synthesize/pull/1) Support for YAML configuration files.

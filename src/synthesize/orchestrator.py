@@ -49,7 +49,7 @@ class Orchestrator:
             try:
                 await self.start_heartbeat()
                 await self.start_watchers()
-                await self.start_ready_targets(tmp_dir=tmp_dir)
+                await self.start_ready_recipes(tmp_dir=tmp_dir)
 
                 return await self.handle_messages(tmp_dir=tmp_dir)
             finally:
@@ -115,7 +115,7 @@ class Orchestrator:
                 case Quit():
                     return 0
 
-            await self.start_ready_targets(tmp_dir=tmp_dir)
+            await self.start_ready_recipes(tmp_dir=tmp_dir)
 
             self.renderer.handle_message(message)
 
@@ -130,7 +130,7 @@ class Orchestrator:
 
         self.heartbeat = create_task(heartbeat())
 
-    async def start_ready_targets(self, tmp_dir: Path) -> None:
+    async def start_ready_recipes(self, tmp_dir: Path) -> None:
         for node in self.state.ready_nodes():
             if e := self.executions.get(node.id):
                 if not e.has_exited:
