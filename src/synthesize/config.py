@@ -341,8 +341,22 @@ class TimestampSettings(Model):
     ] = False
 
 
+class DotEnvSettings(Model):
+    """Controls loading of `.env` files using [python-dotenv](https://saurabh-kumar.com/python-dotenv/)."""
+
+    load: Annotated[
+        bool,
+        Field(description="If true, load environment variables from the `file`."),
+    ] = True
+    file: Annotated[
+        str,
+        Field(description="Path to the `.env` file to load, relative to the config file."),
+    ] = ".env"
+
+
 class Settings(Model):
     timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
+    dot_env: DotEnvSettings = Field(default_factory=DotEnvSettings)
 
     def with_overrides(self, overrides: list[str]) -> Settings:
         d = self.model_dump()

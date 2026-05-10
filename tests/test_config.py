@@ -377,6 +377,8 @@ def test_settings_defaults() -> None:
     s = Settings()
     assert s.timestamps.sub_second_digits == 0
     assert s.timestamps.include_date is False
+    assert s.dot_env.load is True
+    assert s.dot_env.file == ".env"
 
 
 def test_settings_can_be_overridden_in_config_yaml() -> None:
@@ -431,3 +433,21 @@ def test_with_overrides_parses_values_as_yaml() -> None:
 def test_with_overrides_raises_for_invalid_value() -> None:
     with pytest.raises(PydanticValidationError):
         Settings().with_overrides(["timestamps.sub_second_digits=99"])
+
+
+def test_dot_env_settings_can_be_overridden_in_config_yaml() -> None:
+    config = Config.model_validate_yaml("""
+settings:
+  dot_env:
+    load: false
+    file: .custom-env
+flows: {}
+""")
+    assert config.settings.dot_env.load is False
+    assert config.settings.dot_env.file == ".custom-env"
+
+
+def test_dot_env_settings_can_be_overridden_via_with_overrides() -> None:
+    result = Settings().with_overrides(["dot_env.load=false", "dot_env.file=.custom-env"])
+    assert result.dot_env.load is False
+    assert result.dot_env.file == ".custom-env"
