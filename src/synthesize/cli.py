@@ -10,7 +10,8 @@ import typer.rich_utils as ru
 from click.exceptions import Exit
 from dotenv import load_dotenv
 from more_itertools import mark_ends
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from rich.console import Console
 from rich.json import JSON
 from rich.markup import escape
@@ -70,7 +71,7 @@ def run(
     """Run a flow."""
     start_time = monotonic()
 
-    console = Console()
+    console = _make_console(Env())
 
     config_path, parsed_config = _load_config(config, console)
 
@@ -130,7 +131,7 @@ def list_flows(
     ] = False,
 ) -> None:
     """List the flows defined in the config file. The default flow is marked with [default]."""
-    console = Console()
+    console = _make_console(Env())
 
     _, parsed_config = _load_config(config, console)
 
@@ -170,7 +171,7 @@ def diagram(
     config: ConfigOption = None,
 ) -> None:
     """Output a diagram describing a flow."""
-    console = Console()
+    console = _make_console(Env())
 
     _, parsed_config = _load_config(config, console)
 
@@ -186,6 +187,19 @@ def diagram(
             print(selected_flow.mermaid())  # bare print keeps output clean for piping (e.g. the MkDocs hook)
         case _:
             assert_never(format)
+
+
+class Env(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="SYNTH_")
+
+    force_terminal: Optional[bool] = Field(
+        None,
+        description="Force terminal formatting on (`true`) or off (`false`). Defaults to auto-detection.",
+    )
+
+
+def _make_console(env: Env) -> Console:
+    return Console(force_terminal=env.force_terminal)
 
 
 def _resolve(parsed_config: Config, setting_overrides: list[str], console: Console) -> ResolvedConfig:

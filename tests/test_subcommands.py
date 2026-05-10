@@ -8,6 +8,10 @@ from synthesize.cli import cli
 
 EXAMPLES_DIR = Path(__file__).parent.parent / "docs" / "examples"
 
+# The ANSI-formatted [default] marker as produced by Rich with force_terminal=True.
+# Captured by running synth list under SYNTH_FORCE_TERMINAL=true.
+_DEFAULT_MARKER = " \x1b[1;2m[\x1b[0m\x1b[2mdefault\x1b[0m\x1b[1;2m]\x1b[0m"
+
 
 def test_list_outputs_flow_names() -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(EXAMPLES_DIR / "after.yaml")])
@@ -23,7 +27,7 @@ def test_list_multiple_flows(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build [default]", "check", "dev"]
+    assert result.output.splitlines() == [f"build{_DEFAULT_MARKER}", "check", "dev"]
 
 
 def test_list_marks_flow_named_default_as_default(tmp_path: Path) -> None:
@@ -33,7 +37,7 @@ def test_list_marks_flow_named_default_as_default(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build", "default [default]", "dev"]
+    assert result.output.splitlines() == ["build", f"default{_DEFAULT_MARKER}", "dev"]
 
 
 def test_list_marks_default_flow_setting_as_default(tmp_path: Path) -> None:
@@ -43,7 +47,7 @@ def test_list_marks_default_flow_setting_as_default(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
 
     assert result.exit_code == 0
-    assert result.output.splitlines() == ["build", "default", "dev [default]"]
+    assert result.output.splitlines() == ["build", "default", f"dev{_DEFAULT_MARKER}"]
 
 
 def test_list_errors_when_default_flow_does_not_exist(tmp_path: Path) -> None:

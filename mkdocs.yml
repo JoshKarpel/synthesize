@@ -57,6 +57,7 @@ plugins:
 hooks:
   - docs/hooks/mermaid.py
   - docs/hooks/schemas.py
+  - docs/hooks/env_vars.py
 
 markdown_extensions:
   - admonition
@@ -94,5 +95,6 @@ nav:
   - recipes.md
   - triggers.md
   - settings.md
+  - environment.md
   - other-tools.md
   - changelog.md

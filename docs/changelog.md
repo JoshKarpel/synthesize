@@ -5,6 +5,10 @@
 ### Added
 
 - [#255](https://github.com/JoshKarpel/synthesize/pull/255)
+  Added `SYNTH_FORCE_TERMINAL` environment variable to force Rich terminal formatting on (`true`) or off (`false`),
+  overriding auto-detection. See the [Environment Variables](environment.md) page.
+
+- [#255](https://github.com/JoshKarpel/synthesize/pull/255)
   When no flow is specified, the default flow is selected by precedence:
   the flow named by `settings.default_flow` (if explicitly set), then a flow named `default` (if present),
   then the first-defined flow.

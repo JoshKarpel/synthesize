@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2",
+    "pydantic-settings>=2",
     "rich>=13.3",
     "typer>=0.7",
     "click>=8.1",
@@ -57,6 +58,7 @@ dev = [
     "mkdocs>=1.4,<2",
     "mkdocs-material>=9",
     "mkdocstrings[python]>=0.19.0",
+    "griffe>=1,<2",  # mkdocstrings-python 2.x requires griffelib but still uses the griffe 1.x API internally
     "openapi-pydantic>=0.4",
 ]
 
@@ -69,7 +71,7 @@ Documentation = "https://www.synth.how"
 synth = "synthesize.cli:cli"
 
 [tool.pytest.ini_options]
-addopts = ["--strict-markers", "-v", "-n", "auto", "--dist", "worksteal"]
+addopts = ["--strict-markers", "-vv", "--cov", "-n", "auto", "--dist", "worksteal"]
 testpaths = ["tests", "src", "docs"]
 
 markers = ["slow"]

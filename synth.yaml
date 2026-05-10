@@ -19,15 +19,15 @@ flows:
 recipes:
   tests:
     commands: |
-      pytest -vv --cov
+      uv run pytest
 
   types:
     commands: |
-      mypy
+      uv run mypy
 
   docs:
     commands: |
-      mkdocs serve --strict
+      uv run mkdocs serve --strict
 
 triggers:
   code-changes:
