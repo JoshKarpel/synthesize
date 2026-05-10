@@ -1,5 +1,6 @@
 flows:
   default:
+    description: run tests, type-checking, and docs dev server
     nodes:
       tests:
         recipe: tests
@@ -27,6 +28,7 @@ recipes:
   docs:
     commands: |
       mkdocs serve --strict
+      echo foo
 
 triggers:
   code-changes:

@@ -10,7 +10,16 @@
 [![GitHub issues](https://img.shields.io/github/issues/JoshKarpel/synthesize)](https://github.com/JoshKarpel/synthesize/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/JoshKarpel/synthesize)](https://github.com/JoshKarpel/synthesize/pulls)
 
-Synthesize is a tool for managing long-lived development workflows that involve multiple tools executing concurrently,
-each of which might have bespoke conditions around when and how it needs to be run or re-run.
+Synthesize is a DAG-shaped workflow runner for local development.
+Flows are graphs of nodes that run concurrently;
+each node can re-run based on conditions like file changes, predecessor completion, or unexpected exits.
+
+Install Synthesize as a [development dependency](https://docs.astral.sh/uv/concepts/projects/dependencies/#development-dependencies) in your project:
+
+```bash
+uv add --dev synthesize
+```
+
+Then use `uv run synth --help` to see what's available.
 
 See [the documentation](https://www.synth.how) for more information.

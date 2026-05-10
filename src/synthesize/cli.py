@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from pathlib import Path
 from time import monotonic
 from typing import Optional
@@ -16,7 +17,7 @@ from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
 
-from synthesize.config import Config
+from synthesize.config import Config, ResolvedFlow, Settings
 from synthesize.orchestrator import Orchestrator
 from synthesize.state import CyclicFlowDetected
 
@@ -35,6 +36,13 @@ def run(
         default=False,
         help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
     ),
+    setting: list[str] = Option(
+        [],
+        "-s",
+        "--set",
+        "--setting",
+        help="Override a setting from the config file using a dotted path, e.g. `-s timestamps.sub_second_digits=3`.",
+    ),
     config: Optional[Path] = Option(
         default=None,
         exists=True,
@@ -43,51 +51,21 @@ def run(
         envvar="SYNTHFILE",
         help="The path to the configuration file to execute.",
     ),
-    mermaid: bool = Option(
-        default=False,
-        help="If enabled, output a description of the flow as a Mermaid diagram, and don't run the flow.",
-    ),
     dry: bool = Option(
         default=False,
         help="If enabled, do not run actually run the flow.",
-    ),
-    setting: list[str] = Option(
-        [],
-        "-s",
-        "--set",
-        "--setting",
-        help="Override a setting from the config file using a dotted path, e.g. `-s timestamps.sub_second_digits=3`.",
     ),
 ) -> None:
     start_time = monotonic()
 
     console = Console()
 
-    config = config or find_config_file(console)
+    config_path, parsed_config = _load_config(config, console)
 
-    try:
-        parsed_config = Config.from_file(config)
-    except ValidationError as e:
-        for err in e.errors():
-            loc = ".".join(map(str, err["loc"]))
-            msg = err["msg"]
-            console.print(f"[red]ERROR[/red] {loc} -> {msg}")
-        raise Exit(code=1)
-
-    try:
-        effective_settings = parsed_config.settings.with_overrides(setting)
-    except ValueError as e:
-        console.print(f"[red]ERROR[/red] {e}")
-        raise Exit(code=1)
-    except ValidationError as e:
-        for err in e.errors():
-            loc = ".".join(map(str, err["loc"]))
-            msg = err["msg"]
-            console.print(f"[red]ERROR[/red] setting {loc} -> {msg}")
-        raise Exit(code=1)
+    effective_settings = _apply_settings(parsed_config, setting, console)
 
     if effective_settings.dot_env.load:
-        load_dotenv(config.parent / effective_settings.dot_env.file)
+        load_dotenv(config_path.parent / effective_settings.dot_env.file)
 
     if dry:
         console.print(
@@ -104,25 +82,10 @@ def run(
 
     resolved = parsed_config.resolve()
 
-    try:
-        selected_flow = resolved[flow]
-    except KeyError:
-        sep = "\n  "
-        available_flows = sep + sep.join(resolved.keys())
-        console.print(
-            Text(
-                f"Error: no flow named '{flow}'. Available flows:{available_flows}",
-                style=Style(color="red"),
-            )
-        )
-        raise Exit(code=1)
+    selected_flow = _select_flow(resolved, flow, console)
 
     if once:
         selected_flow = selected_flow.once()
-
-    if mermaid:
-        print(selected_flow.mermaid())
-        return
 
     if dry:
         return
@@ -148,6 +111,120 @@ def run(
 
         console.print(Text(f"Finished in {end_time - start_time:.3f} seconds. Final state:"))
         console.print(controller.renderer.state_summary())
+
+
+@cli.command("list")
+def list_flows(
+    config: Optional[Path] = Option(
+        default=None,
+        exists=True,
+        readable=True,
+        show_default=True,
+        envvar="SYNTHFILE",
+        help="The path to the configuration file.",
+    ),
+    details: bool = Option(
+        default=False,
+        help="If enabled, show each flow's nodes with their triggers and commands.",
+    ),
+) -> None:
+    console = Console()
+
+    _, parsed_config = _load_config(config, console)
+
+    resolved = parsed_config.resolve() if details else None
+
+    for name, flow in parsed_config.flows.items():
+        if flow.description:
+            console.print(f"{name}  [dim]{flow.description}[/dim]")
+        else:
+            console.print(name)
+
+        if details and resolved is not None:
+            for node in resolved[name].nodes.values():
+                triggers_str = ", ".join(type(t).__name__.lower() for t in node.triggers)
+                lines = node.recipe.commands.strip().splitlines()
+                console.print(f"  [dim]{node.id}  ({triggers_str})[/dim]")
+                for line in lines:
+                    console.print(f"    {line}")
+
+
+@cli.command()
+def mermaid(
+    flow: str = Argument(
+        default="default",
+        help="The flow to diagram.",
+    ),
+    once: bool = Option(
+        default=False,
+        help="If passed, any trigger that could cause a node to run more than once will be replaced by a `once` trigger.",
+    ),
+    config: Optional[Path] = Option(
+        default=None,
+        exists=True,
+        readable=True,
+        show_default=True,
+        envvar="SYNTHFILE",
+        help="The path to the configuration file.",
+    ),
+) -> None:
+    console = Console()
+
+    _, parsed_config = _load_config(config, console)
+
+    resolved = parsed_config.resolve()
+
+    selected_flow = _select_flow(resolved, flow, console)
+
+    if once:
+        selected_flow = selected_flow.once()
+
+    print(selected_flow.mermaid())
+
+
+def _apply_settings(parsed_config: Config, setting: list[str], console: Console) -> Settings:
+    try:
+        return parsed_config.settings.with_overrides(setting)
+    except ValueError as e:
+        console.print(f"[red]ERROR[/red] {e}")
+        raise Exit(code=1)
+    except ValidationError as e:
+        for err in e.errors():
+            loc = ".".join(map(str, err["loc"]))
+            msg = err["msg"]
+            console.print(f"[red]ERROR[/red] setting {loc} -> {msg}")
+        raise Exit(code=1)
+
+
+def _select_flow(
+    resolved: Mapping[str, ResolvedFlow],
+    flow: str,
+    console: Console,
+) -> ResolvedFlow:
+    try:
+        return resolved[flow]
+    except KeyError:
+        sep = "\n  "
+        available_flows = sep + sep.join(resolved.keys())
+        console.print(
+            Text(
+                f"Error: no flow named '{flow}'. Available flows:{available_flows}",
+                style=Style(color="red"),
+            )
+        )
+        raise Exit(code=1)
+
+
+def _load_config(config: Optional[Path], console: Console) -> tuple[Path, Config]:
+    resolved = config or find_config_file(console)
+    try:
+        return resolved, Config.from_file(resolved)
+    except ValidationError as e:
+        for err in e.errors():
+            loc = ".".join(map(str, err["loc"]))
+            msg = err["msg"]
+            console.print(f"[red]ERROR[/red] {loc} -> {msg}")
+        raise Exit(code=1)
 
 
 def find_config_file(console: Console) -> Path:
