@@ -105,7 +105,7 @@ class FlowState:
         # there might be work to do in the future
         # even if there isn't any to do right now.
         for node in self.flow.nodes.values():
-            if any(isinstance(t, RepeatingTrigger) for t in node.triggers):  # type: ignore[misc,arg-type]
+            if any(isinstance(t, RepeatingTrigger) for t in node.triggers):  # type: ignore[arg-type]
                 return False
 
         # Otherwise, if there are no ready nodes and no running or starting nodes, we must be done.

@@ -51,7 +51,7 @@ dev = [
     "hypothesis>=6",
     "mypy>=1",
     "types-pyyaml>=6",
-    "mkdocs>=1.4",
+    "mkdocs>=1.4,<2",
     "mkdocs-material>=9",
     "mkdocstrings[python]>=0.19.0",
     "openapi-pydantic>=0.4",
@@ -83,6 +83,7 @@ pretty = false
 show_error_codes = true
 
 files = ["."]
+exclude = ["site/"]
 
 check_untyped_defs = true
 disallow_incomplete_defs = true
