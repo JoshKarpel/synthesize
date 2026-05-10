@@ -5,9 +5,11 @@
 ### Added
 
 - [#255](https://github.com/JoshKarpel/synthesize/pull/255)
-  When no flow is specified, the flow named by `settings.default_flow` (default: `default`) is used.
-  If that flow doesn't exist, the first-defined flow is used instead.
-  `synth list` marks the current default flow with `*`.
+  When no flow is specified, the default flow is selected by precedence:
+  the flow named by `settings.default_flow` (if explicitly set), then a flow named `default` (if present),
+  then the first-defined flow.
+  If `settings.default_flow` is set but names a non-existent flow, `synth run` and `synth diagram` exit with an error.
+  `synth list` marks the default flow with `*`.
 
 - [#253](https://github.com/JoshKarpel/synthesize/pull/253)
   The `synth list` subcommand lists the flows defined in the config file.

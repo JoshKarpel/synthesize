@@ -46,6 +46,26 @@ def test_list_marks_default_flow_setting_as_default(tmp_path: Path) -> None:
     assert result.output.splitlines() == ["build", "default", "dev *"]
 
 
+def test_list_shows_no_default_marker_when_default_flow_does_not_exist(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("settings:\n  default_flow: nonexistent\nflows:\n  build: {}\n  dev: {}")
+
+    result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
+
+    assert result.exit_code == 0
+    assert result.output.splitlines() == ["build", "dev"]
+
+
+def test_run_errors_when_default_flow_does_not_exist(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("settings:\n  default_flow: nonexistent\nflows:\n  build: {}\n  dev: {}")
+
+    result = CliRunner().invoke(cli, ["run", "--config", str(config_file)])
+
+    assert result.exit_code == 1
+    assert "failed to determine a default flow" in result.output
+
+
 def test_list_shows_description(tmp_path: Path) -> None:
     config_file = tmp_path / "synth.yaml"
     config_file.write_text("flows:\n  check:\n    description: run tests and lint\n  dev: {}")

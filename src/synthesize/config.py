@@ -9,7 +9,7 @@ from functools import cached_property
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Annotated, Union
+from typing import Annotated, Optional, Union
 
 import yaml
 from identify.identify import tags_from_path
@@ -35,6 +35,8 @@ Args = dict[
 ]
 Envs = dict[Annotated[str, Field(min_length=1)], str]
 ID = Annotated[str, Field(pattern=r"\w+")]
+
+DEFAULT_FLOW_NAME = "default"
 
 
 def random_color() -> str:
@@ -362,9 +364,9 @@ class DotEnvSettings(Model):
 
 class Settings(Model):
     default_flow: Annotated[
-        str,
+        Optional[ID],
         Field(description="The name of the default flow to run when no flow is specified."),
-    ] = "default"
+    ] = None
     dot_env: DotEnvSettings = Field(default_factory=DotEnvSettings)
     timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
 

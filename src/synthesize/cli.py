@@ -10,7 +10,7 @@ from typing import Annotated, Optional
 import typer.rich_utils as ru
 from click.exceptions import Exit
 from dotenv import load_dotenv
-from more_itertools import first, mark_ends
+from more_itertools import mark_ends
 from pydantic import ValidationError
 from rich.console import Console
 from rich.json import JSON
@@ -20,7 +20,7 @@ from rich.text import Text
 from typer import Argument, Option, Typer
 from typing_extensions import assert_never
 
-from synthesize.config import Config, ResolvedFlow, Settings
+from synthesize.config import DEFAULT_FLOW_NAME, Config, ResolvedFlow, Settings
 from synthesize.orchestrator import Orchestrator
 from synthesize.state import CyclicFlowDetected
 
@@ -208,10 +208,12 @@ def _apply_settings(parsed_config: Config, setting: list[str], console: Console)
         raise Exit(code=1)
 
 
-def _default_flow_name(resolved: Mapping[str, ResolvedFlow], settings: Settings) -> str:
-    if settings.default_flow in resolved:
-        return settings.default_flow
-    return first(resolved)
+def _default_flow_name(resolved: Mapping[str, ResolvedFlow], settings: Settings) -> Optional[str]:
+    if settings.default_flow is not None:
+        return settings.default_flow if settings.default_flow in resolved else None
+    if DEFAULT_FLOW_NAME in resolved:
+        return DEFAULT_FLOW_NAME
+    return next(iter(resolved), None)
 
 
 def _select_flow(
@@ -220,16 +222,26 @@ def _select_flow(
     settings: Settings,
     console: Console,
 ) -> ResolvedFlow:
-    name = flow if flow is not None else _default_flow_name(resolved, settings)
+    sep = "\n  "
+    available_flows = sep + sep.join(resolved.keys())
+
+    if flow is None:
+        flow = _default_flow_name(resolved, settings)
+        if flow is None:
+            console.print(
+                Text(
+                    f"Error: failed to determine a default flow; '{settings.default_flow}' does not exist. Available flows:{available_flows}",
+                    style=Style(color="red"),
+                )
+            )
+            raise Exit(code=1)
 
     try:
-        return resolved[name]
+        return resolved[flow]
     except KeyError:
-        sep = "\n  "
-        available_flows = sep + sep.join(resolved.keys())
         console.print(
             Text(
-                f"Error: no flow named '{name}'. Available flows:{available_flows}",
+                f"Error: no flow named '{flow}'. Available flows:{available_flows}",
                 style=Style(color="red"),
             )
         )
