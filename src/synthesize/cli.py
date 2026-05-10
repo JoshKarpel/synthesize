@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
 from time import monotonic
-from typing import Annotated, Optional
+from typing import Annotated, Optional, assert_never
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
@@ -137,7 +137,7 @@ def list_flows(
 
     _, parsed_config = _load_config(config, console)
 
-    resolved = parsed_config.resolve() if details else None
+    resolved = parsed_config.resolve()
 
     for is_first, is_last, (name, flow) in mark_ends(parsed_config.flows.items()):
         if details and not is_first:
@@ -183,7 +183,11 @@ def diagram(
     if once:
         selected_flow = selected_flow.once()
 
-    print(selected_flow.mermaid())  # bare print keeps output clean for piping (e.g. the MkDocs hook)
+    match format:
+        case DiagramFormat.mermaid:
+            print(selected_flow.mermaid())  # bare print keeps output clean for piping (e.g. the MkDocs hook)
+        case _:
+            assert_never(format)
 
 
 def _apply_settings(parsed_config: Config, setting: list[str], console: Console) -> Settings:
