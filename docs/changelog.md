@@ -4,7 +4,7 @@
 
 ### Added
 
-- [#252](https://github.com/JoshKarpel/synthesize/issues/252)
+- [#255](https://github.com/JoshKarpel/synthesize/pull/255)
   When no flow is specified, the flow named by `settings.default_flow` (default: `default`) is used.
   If that flow doesn't exist, the first-defined flow is used instead.
   `synth list` marks the current default flow with `*`.
