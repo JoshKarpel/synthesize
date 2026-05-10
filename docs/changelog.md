@@ -7,7 +7,7 @@
 - [#244](https://github.com/JoshKarpel/synthesize/pull/244)
   Updated the recommended installation method from `pipx` to `uv tool install`,
   with alternatives for `uvx` and `uv add --dev`.
-- [#235](https://github.com/JoshKarpel/synthesize/issues/235)
+- [#246](https://github.com/JoshKarpel/synthesize/pull/246)
   Renamed `target`/`targets` to `recipe`/`recipes` in the configuration schema,
   matching the terminology used by [`just`](https://github.com/casey/just).
 
