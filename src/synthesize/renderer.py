@@ -14,7 +14,7 @@ from rich.text import Text
 from typing_extensions import assert_never
 from watchfiles import Change
 
-from synthesize.config import ResolvedNode
+from synthesize.config import ResolvedNode, Settings
 from synthesize.messages import (
     Debug,
     ExecutionCompleted,
@@ -25,8 +25,6 @@ from synthesize.messages import (
 )
 from synthesize.state import FlowState, Status
 
-prefix_format = "{timestamp:%H:%M:%S} {id}  "
-internal_format = "{timestamp:%H:%M:%S}"
 CHANGE_TO_STYLE = {
     Change.added: Style(color="green"),
     Change.deleted: Style(color="red"),
@@ -35,11 +33,22 @@ CHANGE_TO_STYLE = {
 
 
 class Renderer:
-    def __init__(self, state: FlowState, console: Console):
+    def __init__(self, state: FlowState, console: Console, settings: Settings):
         self.state = state
         self.console = console
+        self.settings = settings
 
         self.live = Live(console=console, auto_refresh=False)
+
+    def format_timestamp(self, ts: datetime) -> str:
+        t = self.settings.timestamps
+        base = ts.strftime("%Y-%m-%d %H:%M:%S" if t.include_date else "%H:%M:%S")
+        if t.sub_second_digits > 0:
+            return f"{base}.{f'{ts.microsecond:06d}'[:t.sub_second_digits]}"
+        return base
+
+    def format_prefix(self, id: str, ts: datetime) -> str:
+        return f"{self.format_timestamp(ts)} {id}  "
 
     def __enter__(self) -> None:
         self.live.start(refresh=True)
@@ -95,7 +104,7 @@ class Renderer:
         status_table.add_row(*node_status_displays)
 
         table.add_row(
-            internal_format.format_map({"timestamp": event.timestamp}),
+            self.format_timestamp(event.timestamp),
             status_table,
         )
 
@@ -114,9 +123,7 @@ class Renderer:
         self,
         message: ExecutionOutput | ExecutionStarted | ExecutionCompleted | WatchPathChanged,
     ) -> str:
-        return prefix_format.format_map({"id": message.node.id, "timestamp": message.timestamp}).ljust(
-            self.prefix_width
-        )
+        return self.format_prefix(message.node.id, message.timestamp).ljust(self.prefix_width)
 
     def handle_command_message(self, message: ExecutionOutput) -> None:
         prefix = Text(
@@ -178,7 +185,7 @@ class Renderer:
         g = Table.grid()
 
         prefix = Text.from_markup(
-            prefix_format.format_map({"id": "DEBUG", "timestamp": message.timestamp}).ljust(self.prefix_width),
+            self.format_prefix("DEBUG", message.timestamp).ljust(self.prefix_width),
             style=Style(color="red", dim=True),
         )
 
@@ -220,9 +227,4 @@ class Renderer:
     def prefix_width(self) -> int:
         now = datetime.now()
 
-        return len(
-            max(
-                (prefix_format.format_map({"timestamp": now, "id": t.id}) for t in self.state.nodes()),
-                key=len,
-            )
-        )
+        return len(max((self.format_prefix(t.id, now) for t in self.state.nodes()), key=len))

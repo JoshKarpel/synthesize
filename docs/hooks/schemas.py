@@ -53,7 +53,7 @@ def schema_lines(schema_or_ref: Schema | Reference, key: str | None, defs: Mappi
     st = schema.title
     assert st is not None
 
-    if schema.type in {DataType.STRING, DataType.NUMBER, DataType.BOOLEAN}:
+    if schema.type in {DataType.STRING, DataType.NUMBER, DataType.INTEGER, DataType.BOOLEAN}:
         t = mono(st.lower()) if st else ""
         default = f" (Default: {mono(repr(schema.default))}) " if not schema.required else " "
         yield f"- {t} {dt} {default} {sep if schema.description else ''} {schema.description}"
@@ -97,6 +97,7 @@ def display_type(schema: Schema | Reference, defs: Mapping[str, Schema]) -> str:
     if isinstance(st, DataType) and st in {
         DataType.STRING,
         DataType.NUMBER,
+        DataType.INTEGER,
         DataType.BOOLEAN,
         DataType.OBJECT,
     }:

@@ -50,6 +50,13 @@ def run(
         default=False,
         help="If enabled, do not run actually run the flow.",
     ),
+    setting: list[str] = Option(
+        [],
+        "-s",
+        "--set",
+        "--setting",
+        help="Override a setting from the config file using a dotted path, e.g. `-s timestamps.sub_second_digits=3`.",
+    ),
 ) -> None:
     start_time = monotonic()
 
@@ -66,10 +73,26 @@ def run(
             console.print(f"[red]ERROR[/red] {loc} -> {msg}")
         raise Exit(code=1)
 
+    try:
+        effective_settings = parsed_config.settings.with_overrides(setting)
+    except ValueError as e:
+        console.print(f"[red]ERROR[/red] {e}")
+        raise Exit(code=1)
+    except ValidationError as e:
+        for err in e.errors():
+            loc = ".".join(map(str, err["loc"]))
+            msg = err["msg"]
+            console.print(f"[red]ERROR[/red] setting {loc} -> {msg}")
+        raise Exit(code=1)
+
     if dry:
         console.print(
             Panel(
-                JSON(parsed_config.model_dump_json(exclude_unset=True)),
+                JSON(
+                    parsed_config.model_copy(update={"settings": effective_settings}).model_dump_json(
+                        exclude_unset=True
+                    )
+                ),
                 title="Configuration",
                 title_align="left",
             )
@@ -101,7 +124,7 @@ def run(
         return
 
     try:
-        controller = Orchestrator(flow=selected_flow, console=console)
+        controller = Orchestrator(flow=selected_flow, console=console, settings=effective_settings)
     except CyclicFlowDetected as e:
         console.print(
             Text(

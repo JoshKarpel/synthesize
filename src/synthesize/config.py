@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shlex
 import shutil
 from collections.abc import Mapping
@@ -10,6 +11,7 @@ from random import random
 from textwrap import dedent
 from typing import Annotated, Union
 
+import yaml
 from identify.identify import tags_from_path
 from jinja2 import Environment
 from networkx import DiGraph
@@ -45,6 +47,8 @@ def random_color() -> str:
 
 
 template_environment = Environment()
+
+SETTING_OVERRIDE_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_-]*(\.[a-zA-Z_][a-zA-Z0-9_-]*)*=")
 
 
 class Recipe(Model):
@@ -320,6 +324,46 @@ class Flow(Model):
         )
 
 
+class TimestampSettings(Model):
+    sub_second_digits: Annotated[
+        int,
+        Field(
+            ge=0,
+            le=6,
+            description="The number of sub-second digits to show in timestamps (0-6).",
+        ),
+    ] = 0
+    include_date: Annotated[
+        bool,
+        Field(
+            description="If true, include the date (YYYY-MM-DD) in timestamps.",
+        ),
+    ] = False
+
+
+class Settings(Model):
+    timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
+
+    def with_overrides(self, overrides: list[str]) -> Settings:
+        d = self.model_dump()
+        for override in overrides:
+            if not SETTING_OVERRIDE_RE.match(override):
+                raise ValueError(
+                    f"invalid setting {override!r}: must be in key=value format (e.g. timestamps.sub_second_digits=3)"
+                )
+            k, v = override.split("=", maxsplit=1)
+            node = d
+            # Normalize dashes to underscores so that YAML-style keys (e.g. sub-second-digits)
+            # map to the Python identifier equivalents used by Pydantic (sub_second_digits).
+            parts = [p.replace("-", "_") for p in k.split(".")]
+            for part in parts[:-1]:
+                if not isinstance(node.get(part), dict):
+                    node[part] = {}
+                node = node[part]
+            node[parts[-1]] = yaml.safe_load(v)
+        return Settings.model_validate(d)
+
+
 class Config(Model):
     flows: Annotated[
         Mapping[ID, Flow],
@@ -339,6 +383,12 @@ class Config(Model):
             description="A mapping of IDs to triggers.",
         ),
     ] = {}
+    settings: Annotated[
+        Settings,
+        Field(
+            description="Global settings.",
+        ),
+    ] = Field(default_factory=Settings)
 
     @classmethod
     def from_file(cls, file: Path) -> Config:

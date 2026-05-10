@@ -9,7 +9,7 @@ from tempfile import TemporaryDirectory
 from rich.console import Console
 from watchfiles import awatch
 
-from synthesize.config import ResolvedFlow, ResolvedNode, Restart, Watch
+from synthesize.config import ResolvedFlow, ResolvedNode, Restart, Settings, Watch
 from synthesize.execution import Execution
 from synthesize.messages import (
     ExecutionCompleted,
@@ -24,12 +24,12 @@ from synthesize.state import FlowState, Status
 
 
 class Orchestrator:
-    def __init__(self, flow: ResolvedFlow, console: Console):
+    def __init__(self, flow: ResolvedFlow, console: Console, settings: Settings):
         self.flow = flow
         self.console = console
 
         self.state = FlowState.from_flow(flow=flow)
-        self.renderer = Renderer(state=self.state, console=console)
+        self.renderer = Renderer(state=self.state, console=console, settings=settings)
 
         self.inbox: Queue[Message] = Queue()
 

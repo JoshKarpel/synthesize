@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 from rich.style import Style
 
 from synthesize.config import (
@@ -16,6 +17,7 @@ from synthesize.config import (
     ResolvedFlow,
     ResolvedNode,
     Restart,
+    Settings,
     Watch,
     random_color,
 )
@@ -369,3 +371,63 @@ def test_resolved_flow_once() -> None:
     assert len(once_flow.nodes) == 2
     assert once_flow.nodes["foo"].triggers == (Once(),)
     assert once_flow.nodes["bar"].triggers == (After(after=("foo",)),)
+
+
+def test_settings_defaults() -> None:
+    s = Settings()
+    assert s.timestamps.sub_second_digits == 0
+    assert s.timestamps.include_date is False
+
+
+def test_settings_can_be_overridden_in_config_yaml() -> None:
+    config = Config.model_validate_yaml("""
+settings:
+  timestamps:
+    sub_second_digits: 3
+    include_date: true
+flows: {}
+""")
+    assert config.settings.timestamps.sub_second_digits == 3
+    assert config.settings.timestamps.include_date is True
+
+
+def test_with_overrides_applies_dotted_keys() -> None:
+    result = Settings().with_overrides(["timestamps.sub_second_digits=3", "timestamps.include_date=true"])
+    assert result.timestamps.sub_second_digits == 3
+    assert result.timestamps.include_date is True
+
+
+def test_with_overrides_empty_list_returns_equivalent_settings() -> None:
+    base = Settings()
+    assert base.with_overrides([]) == base
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "no-equals-sign",
+        "=no-key",
+        "bad key=value",
+        ".leading.dot=value",
+    ],
+)
+def test_with_overrides_raises_for_bad_format(bad: str) -> None:
+    with pytest.raises(ValueError, match="key=value"):
+        Settings().with_overrides([bad])
+
+
+def test_with_overrides_normalizes_dashes_to_underscores() -> None:
+    result = Settings().with_overrides(["timestamps.sub-second-digits=3"])
+    assert result.timestamps.sub_second_digits == 3
+
+
+def test_with_overrides_parses_values_as_yaml() -> None:
+    result = Settings().with_overrides(["timestamps.sub_second_digits=3", "timestamps.include_date=true"])
+    assert result.timestamps.sub_second_digits == 3
+    assert isinstance(result.timestamps.sub_second_digits, int)
+    assert result.timestamps.include_date is True
+
+
+def test_with_overrides_raises_for_invalid_value() -> None:
+    with pytest.raises(PydanticValidationError):
+        Settings().with_overrides(["timestamps.sub_second_digits=99"])
