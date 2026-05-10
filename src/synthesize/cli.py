@@ -7,6 +7,7 @@ from typing import Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
+from dotenv import load_dotenv
 from pydantic import ValidationError
 from rich.console import Console
 from rich.json import JSON
@@ -84,6 +85,9 @@ def run(
             msg = err["msg"]
             console.print(f"[red]ERROR[/red] setting {loc} -> {msg}")
         raise Exit(code=1)
+
+    if effective_settings.dot_env.load:
+        load_dotenv(config.parent / effective_settings.dot_env.file)
 
     if dry:
         console.print(
