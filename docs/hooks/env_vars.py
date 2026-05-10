@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings
 def on_page_markdown(markdown: str, page: Page, config: MkDocsConfig, files: Files) -> str:
     lines = []
     for line in markdown.splitlines():
-        if match := re.match(r"@env\(([\w\.]+)\s*,\s*(\w+)\)", line):
+        if match := re.fullmatch(r"@env\(([\w\.]+)\s*,\s*(\w+)\)", line):
             mod = importlib.import_module(match.group(1))
             importlib.reload(mod)
             model_class = getattr(mod, match.group(2))

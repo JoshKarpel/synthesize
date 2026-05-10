@@ -71,7 +71,7 @@ def run(
     """Run a flow."""
     start_time = monotonic()
 
-    console = _make_console(Env())
+    console = _make_console(_load_env())
 
     config_path, parsed_config = _load_config(config, console)
 
@@ -131,7 +131,7 @@ def list_flows(
     ] = False,
 ) -> None:
     """List the flows defined in the config file. The default flow is marked with [default]."""
-    console = _make_console(Env())
+    console = _make_console(_load_env())
 
     _, parsed_config = _load_config(config, console)
 
@@ -171,7 +171,7 @@ def diagram(
     config: ConfigOption = None,
 ) -> None:
     """Output a diagram describing a flow."""
-    console = _make_console(Env())
+    console = _make_console(_load_env())
 
     _, parsed_config = _load_config(config, console)
 
@@ -200,6 +200,18 @@ class Env(BaseSettings):
 
 def _make_console(env: Env) -> Console:
     return Console(force_terminal=env.force_terminal)
+
+
+def _load_env() -> Env:
+    try:
+        return Env()
+    except ValidationError as e:
+        console = Console()
+        for err in e.errors():
+            loc = ".".join(map(str, err["loc"]))
+            msg = err["msg"]
+            console.print(f"[red]ERROR[/red] env {loc} -> {msg}")
+        raise Exit(code=1)
 
 
 def _resolve(parsed_config: Config, setting_overrides: list[str], console: Console) -> ResolvedConfig:
