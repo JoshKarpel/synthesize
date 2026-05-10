@@ -15,7 +15,7 @@ from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
 
-from synthesize.config import Config, Settings
+from synthesize.config import Config
 from synthesize.orchestrator import Orchestrator
 from synthesize.state import CyclicFlowDetected
 
@@ -55,7 +55,7 @@ def run(
         "-s",
         "--set",
         "--setting",
-        help="Override a setting from the config file, e.g. -s prefix_format='{timestamp:%H:%M:%S.%f} {id}  '.",
+        help="Override a setting from the config file using a dotted path, e.g. -s timestamps.sub_second_digits=3.",
     ),
 ) -> None:
     start_time = monotonic()
@@ -73,22 +73,11 @@ def run(
             console.print(f"[red]ERROR[/red] {loc} -> {msg}")
         raise Exit(code=1)
 
-    settings_dict = parsed_config.settings.model_dump()
-    for s in setting:
-        if "=" not in s:
-            console.print(f"[red]ERROR[/red] invalid setting {s!r}: must be in key=value format")
-            raise Exit(code=1)
-        k, v = s.split("=", maxsplit=1)
-        node = settings_dict
-        parts = k.split(".")
-        for part in parts[:-1]:
-            if not isinstance(node.get(part), dict):
-                node[part] = {}
-            node = node[part]
-        node[parts[-1]] = v
-
     try:
-        effective_settings = Settings.model_validate(settings_dict)
+        effective_settings = parsed_config.settings.with_overrides(setting)
+    except ValueError as e:
+        console.print(f"[red]ERROR[/red] {e}")
+        raise Exit(code=1)
     except ValidationError as e:
         for err in e.errors():
             loc = ".".join(map(str, err["loc"]))
@@ -99,7 +88,11 @@ def run(
     if dry:
         console.print(
             Panel(
-                JSON(parsed_config.model_dump_json(exclude_unset=True)),
+                JSON(
+                    parsed_config.model_copy(update={"settings": effective_settings}).model_dump_json(
+                        exclude_unset=True
+                    )
+                ),
                 title="Configuration",
                 title_align="left",
             )

@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 from rich.style import Style
 
 from synthesize.config import (
@@ -388,3 +389,45 @@ flows: {}
 """)
     assert config.settings.timestamps.sub_second_digits == 3
     assert config.settings.timestamps.include_date is True
+
+
+def test_with_overrides_applies_dotted_keys() -> None:
+    result = Settings().with_overrides(["timestamps.sub_second_digits=3", "timestamps.include_date=true"])
+    assert result.timestamps.sub_second_digits == 3
+    assert result.timestamps.include_date is True
+
+
+def test_with_overrides_empty_list_returns_equivalent_settings() -> None:
+    base = Settings()
+    assert base.with_overrides([]) == base
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "no-equals-sign",
+        "=no-key",
+        "bad key=value",
+        ".leading.dot=value",
+    ],
+)
+def test_with_overrides_raises_for_bad_format(bad: str) -> None:
+    with pytest.raises(ValueError, match="key=value"):
+        Settings().with_overrides([bad])
+
+
+def test_with_overrides_normalizes_dashes_to_underscores() -> None:
+    result = Settings().with_overrides(["timestamps.sub-second-digits=3"])
+    assert result.timestamps.sub_second_digits == 3
+
+
+def test_with_overrides_parses_values_as_yaml() -> None:
+    result = Settings().with_overrides(["timestamps.sub_second_digits=3", "timestamps.include_date=true"])
+    assert result.timestamps.sub_second_digits == 3
+    assert isinstance(result.timestamps.sub_second_digits, int)
+    assert result.timestamps.include_date is True
+
+
+def test_with_overrides_raises_for_invalid_value() -> None:
+    with pytest.raises(PydanticValidationError):
+        Settings().with_overrides(["timestamps.sub_second_digits=99"])

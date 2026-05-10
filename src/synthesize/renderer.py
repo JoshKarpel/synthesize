@@ -33,7 +33,7 @@ CHANGE_TO_STYLE = {
 
 
 class Renderer:
-    def __init__(self, state: FlowState, console: Console, settings: Settings = Settings()):
+    def __init__(self, state: FlowState, console: Console, settings: Settings):
         self.state = state
         self.console = console
         self.settings = settings

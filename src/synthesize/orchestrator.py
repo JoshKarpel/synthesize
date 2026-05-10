@@ -24,7 +24,7 @@ from synthesize.state import FlowState, Status
 
 
 class Orchestrator:
-    def __init__(self, flow: ResolvedFlow, console: Console, settings: Settings = Settings()):
+    def __init__(self, flow: ResolvedFlow, console: Console, settings: Settings):
         self.flow = flow
         self.console = console
 
