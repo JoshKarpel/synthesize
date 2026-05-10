@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from enum import Enum
 from pathlib import Path
 from time import monotonic
-from typing import Annotated, Optional, assert_never
+from typing import Annotated, Optional
 
 import typer.rich_utils as ru
 from click.exceptions import Exit
@@ -18,6 +18,7 @@ from rich.panel import Panel
 from rich.style import Style
 from rich.text import Text
 from typer import Argument, Option, Typer
+from typing_extensions import assert_never
 
 from synthesize.config import Config, ResolvedFlow, Settings
 from synthesize.orchestrator import Orchestrator
