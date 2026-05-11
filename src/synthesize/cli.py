@@ -263,8 +263,8 @@ def _load_config(config: Optional[Path], console: Console) -> tuple[Path, Config
             msg = err["msg"]
             console.print(f"[red]ERROR[/red] {loc} -> {msg}")
         raise Exit(code=1)
-    except (OSError, ValueError) as e:
-        console.print(f"[red]ERROR[/red] {e}")
+    except (OSError, ValueError, NotImplementedError) as e:
+        console.print(f"[red]ERROR[/red] {escape(str(e))}")
         raise Exit(code=1)
 
 
