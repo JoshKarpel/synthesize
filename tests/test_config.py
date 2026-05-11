@@ -31,7 +31,7 @@ EXAMPLES = [
 
 @pytest.mark.parametrize("example", EXAMPLES)
 def test_can_generate_mermaid_from_examples(example: Path) -> None:
-    for flow in Config.from_file(example).resolve().values():
+    for flow in Config.from_file(example).resolve().flows.values():
         flow.mermaid()
 
 
@@ -314,7 +314,7 @@ def test_resolve_config(
     config: Config,
     expected: dict[str, ResolvedFlow],
 ) -> None:
-    assert config.resolve() == expected
+    assert config.resolve().flows == expected
 
 
 watch = Watch(watch=("/path/to/watch",))
@@ -387,7 +387,8 @@ settings:
   timestamps:
     sub_second_digits: 3
     include_date: true
-flows: {}
+flows:
+  check: {}
 """)
     assert config.settings.timestamps.sub_second_digits == 3
     assert config.settings.timestamps.include_date is True
@@ -441,7 +442,8 @@ settings:
   dot_env:
     load: false
     file: .custom-env
-flows: {}
+flows:
+  check: {}
 """)
     assert config.settings.dot_env.load is False
     assert config.settings.dot_env.file == ".custom-env"

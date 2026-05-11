@@ -3,19 +3,19 @@ from __future__ import annotations
 import re
 import shlex
 import shutil
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from colorsys import hsv_to_rgb
 from functools import cached_property
 from pathlib import Path
 from random import random
 from textwrap import dedent
-from typing import Annotated, Union
+from typing import Annotated, Optional, Union
 
 import yaml
 from identify.identify import tags_from_path
 from jinja2 import Environment
 from networkx import DiGraph
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from rich.color import Color
 from typing_extensions import assert_never
 
@@ -35,6 +35,8 @@ Args = dict[
 ]
 Envs = dict[Annotated[str, Field(min_length=1)], str]
 ID = Annotated[str, Field(pattern=r"\w+")]
+
+DEFAULT_FLOW_NAME = "default"
 
 
 def random_color() -> str:
@@ -361,10 +363,14 @@ class DotEnvSettings(Model):
 
 
 class Settings(Model):
-    timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
+    default_flow: Annotated[
+        Optional[ID],
+        Field(description="The name of the default flow to run when no flow is specified."),
+    ] = None
     dot_env: DotEnvSettings = Field(default_factory=DotEnvSettings)
+    timestamps: TimestampSettings = Field(default_factory=TimestampSettings)
 
-    def with_overrides(self, overrides: list[str]) -> Settings:
+    def with_overrides(self, overrides: Sequence[str]) -> Settings:
         d = self.model_dump()
         for override in overrides:
             if not SETTING_OVERRIDE_RE.match(override):
@@ -382,6 +388,15 @@ class Settings(Model):
                 node = node[part]
             node[parts[-1]] = yaml.safe_load(v)
         return Settings.model_validate(d)
+
+
+class ResolvedConfig(Model):
+    flows: Mapping[ID, ResolvedFlow]
+    default_flow_name: Annotated[
+        str,
+        Field(description="The name of the default flow."),
+    ]
+    settings: Settings
 
 
 class Config(Model):
@@ -410,6 +425,12 @@ class Config(Model):
         ),
     ] = Field(default_factory=Settings)
 
+    @model_validator(mode="after")
+    def validate_has_flows(self) -> Config:
+        if not self.flows:
+            raise ValueError("at least one flow must be defined")
+        return self
+
     @classmethod
     def from_file(cls, file: Path) -> Config:
         tags = tags_from_path(str(file))
@@ -419,5 +440,19 @@ class Config(Model):
         else:
             raise NotImplementedError("Currently, only YAML files are supported.")
 
-    def resolve(self) -> Mapping[ID, ResolvedFlow]:
-        return {id: flow.resolve(self.recipes, self.triggers) for id, flow in self.flows.items()}
+    def resolve(self, setting_overrides: Sequence[str] = ()) -> ResolvedConfig:
+        settings = self.settings.with_overrides(setting_overrides)
+        flows = {id: flow.resolve(self.recipes, self.triggers) for id, flow in self.flows.items()}
+
+        if settings.default_flow is not None:
+            if settings.default_flow not in flows:
+                raise ValueError(
+                    f"default flow '{settings.default_flow}' does not exist; available flows: {', '.join(flows)}"
+                )
+            default_flow_name = settings.default_flow
+        elif DEFAULT_FLOW_NAME in flows:
+            default_flow_name = DEFAULT_FLOW_NAME
+        else:
+            default_flow_name = next(iter(flows))
+
+        return ResolvedConfig(flows=flows, default_flow_name=default_flow_name, settings=settings)

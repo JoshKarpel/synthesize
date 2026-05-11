@@ -2,11 +2,49 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
-from synthesize.cli import cli
+from synthesize.cli import Env, _make_console, cli
 from tests.conftest import run_example
+
+
+def test_synth_force_terminal_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SYNTH_FORCE_TERMINAL", "true")
+    assert _make_console(Env()).is_terminal is True
+
+
+def test_synth_force_terminal_false(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SYNTH_FORCE_TERMINAL", "false")
+    assert _make_console(Env()).is_terminal is False
+
+
+def test_synth_force_terminal_missing_auto_detects(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SYNTH_FORCE_TERMINAL")
+    console = _make_console(Env())
+    assert console.is_terminal is False  # no tty in test process
+
+
+def test_synth_force_terminal_invalid_exits_with_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.setenv("SYNTH_FORCE_TERMINAL", "not-a-bool")
+
+    result = CliRunner().invoke(cli, ["run", "--config", str(config_file), "--dry"])
+
+    assert result.exit_code == 1
+    assert "force_terminal" in result.output
+
+
+def test_synth_file_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.setenv("SYNTH_FILE", str(config_file))
+
+    result = CliRunner().invoke(cli, ["run", "--dry"])
+
+    assert result.exit_code == 0
 
 
 def test_setting_override_accepted() -> None:

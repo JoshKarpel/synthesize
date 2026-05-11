@@ -4,6 +4,17 @@
 
 ### Added
 
+- [#255](https://github.com/JoshKarpel/synthesize/pull/255)
+  Added `SYNTH_FORCE_TERMINAL` environment variable to force Rich terminal formatting on (`true`) or off (`false`),
+  overriding auto-detection. See the [Environment Variables](environment.md) page.
+
+- [#255](https://github.com/JoshKarpel/synthesize/pull/255)
+  When no flow is specified, the default flow is selected by precedence:
+  the flow named by `settings.default_flow` (if explicitly set), then a flow named `default` (if present),
+  then the first-defined flow.
+  If `settings.default_flow` is set but names a non-existent flow, `synth run` and `synth diagram` exit with an error.
+  `synth list` marks the default flow with `[default]`.
+
 - [#253](https://github.com/JoshKarpel/synthesize/pull/253)
   The `synth list` subcommand lists the flows defined in the config file.
   The `--details` flag additionally shows each flow's nodes with their triggers and commands.
@@ -21,6 +32,9 @@
   covering integration with CI systems and AI coding agents.
 
 ### Changed
+
+- [#255](https://github.com/JoshKarpel/synthesize/pull/255)
+  The environment variable for specifying the config file path has been renamed from `SYNTHFILE` to `SYNTH_FILE`.
 
 - [#253](https://github.com/JoshKarpel/synthesize/pull/253)
   `synth` is now a multi-command app.
