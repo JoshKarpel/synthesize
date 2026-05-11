@@ -47,6 +47,26 @@ def test_synth_file_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     assert result.exit_code == 0
 
 
+def test_synth_file_env_var_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.setenv("SYNTH_FILE", str(config_file))
+
+    result = CliRunner().invoke(cli, ["list"])
+
+    assert result.exit_code == 0
+
+
+def test_synth_file_env_var_diagram(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "synth.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.setenv("SYNTH_FILE", str(config_file))
+
+    result = CliRunner().invoke(cli, ["diagram"])
+
+    assert result.exit_code == 0
+
+
 def test_setting_override_accepted() -> None:
     result = run_example("once.yaml", ("--setting", "timestamps.sub_second_digits=3"))
 

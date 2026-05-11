@@ -131,9 +131,10 @@ def list_flows(
     ] = False,
 ) -> None:
     """List the flows defined in the config file. The default flow is marked with [default]."""
-    console = _make_console(_load_env())
+    env = _load_env()
+    console = _make_console(env)
 
-    _, parsed_config = _load_config(config, console)
+    _, parsed_config = _load_config(config or env.file, console)
 
     resolved = _resolve(parsed_config, [], console)
 
@@ -171,9 +172,10 @@ def diagram(
     config: ConfigOption = None,
 ) -> None:
     """Output a diagram describing a flow."""
-    console = _make_console(_load_env())
+    env = _load_env()
+    console = _make_console(env)
 
-    _, parsed_config = _load_config(config, console)
+    _, parsed_config = _load_config(config or env.file, console)
 
     resolved = _resolve(parsed_config, [], console)
 
