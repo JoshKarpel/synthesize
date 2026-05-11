@@ -57,6 +57,16 @@ def test_synth_file_env_var_invalid_file_exits_with_error(tmp_path: Path, monkey
     assert "ERROR" in result.output
 
 
+def test_config_file_non_yaml_exits_with_error(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.toml"
+    config_file.write_text("[flows]\n")
+
+    result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
+
+    assert result.exit_code == 1
+    assert "ERROR" in result.output
+
+
 def test_synth_file_env_var_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     config_file = tmp_path / "custom.yaml"
     config_file.write_text("flows:\n  default: {}")
