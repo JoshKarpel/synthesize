@@ -255,6 +255,9 @@ def _select_flow(resolved: ResolvedConfig, flow: Optional[str], console: Console
 
 def _load_config(config: Optional[Path], console: Console) -> tuple[Path, Config]:
     resolved = config or find_config_file(console)
+    if not resolved.is_file():
+        console.print(f"[red]ERROR[/red] {escape(str(resolved))} is not a file")
+        raise Exit(code=1)
     try:
         return resolved, Config.from_file(resolved)
     except ValidationError as e:
@@ -264,7 +267,7 @@ def _load_config(config: Optional[Path], console: Console) -> tuple[Path, Config
             console.print(f"[red]ERROR[/red] {loc} -> {msg}")
         raise Exit(code=1)
     except (OSError, ValueError, NotImplementedError) as e:
-        console.print(f"[red]ERROR[/red] {escape(str(e))}")
+        console.print(f"[red]ERROR[/red] {escape(str(resolved))}: {escape(str(e))}")
         raise Exit(code=1)
 
 
