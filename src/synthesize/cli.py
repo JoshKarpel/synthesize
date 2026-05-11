@@ -36,7 +36,6 @@ ConfigOption = Annotated[
         exists=True,
         readable=True,
         show_default=True,
-        envvar="SYNTH_FILE",
         help="The path to the configuration file.",
     ),
 ]
@@ -71,9 +70,10 @@ def run(
     """Run a flow."""
     start_time = monotonic()
 
-    console = _make_console(_load_env())
+    env = _load_env()
+    console = _make_console(env)
 
-    config_path, parsed_config = _load_config(config, console)
+    config_path, parsed_config = _load_config(config or env.file, console)
 
     resolved = _resolve(parsed_config, setting, console)
 
@@ -192,6 +192,10 @@ def diagram(
 class Env(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SYNTH_")
 
+    file: Optional[Path] = Field(
+        None,
+        description="Path to the config file. Equivalent to `--config`.",
+    )
     force_terminal: Optional[bool] = Field(
         None,
         description="Force terminal formatting on (`true`) or off (`false`). Defaults to auto-detection.",
