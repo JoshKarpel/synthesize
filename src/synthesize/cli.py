@@ -131,9 +131,10 @@ def list_flows(
     ] = False,
 ) -> None:
     """List the flows defined in the config file. The default flow is marked with [default]."""
-    console = _make_console(_load_env())
+    env = _load_env()
+    console = _make_console(env)
 
-    _, parsed_config = _load_config(config, console)
+    _, parsed_config = _load_config(config or env.file, console)
 
     resolved = _resolve(parsed_config, [], console)
 
@@ -171,9 +172,10 @@ def diagram(
     config: ConfigOption = None,
 ) -> None:
     """Output a diagram describing a flow."""
-    console = _make_console(_load_env())
+    env = _load_env()
+    console = _make_console(env)
 
-    _, parsed_config = _load_config(config, console)
+    _, parsed_config = _load_config(config or env.file, console)
 
     resolved = _resolve(parsed_config, [], console)
 
@@ -253,6 +255,9 @@ def _select_flow(resolved: ResolvedConfig, flow: Optional[str], console: Console
 
 def _load_config(config: Optional[Path], console: Console) -> tuple[Path, Config]:
     resolved = config or find_config_file(console)
+    if not resolved.is_file():
+        console.print(f"[red]ERROR[/red] {escape(str(resolved))} is not a file")
+        raise Exit(code=1)
     try:
         return resolved, Config.from_file(resolved)
     except ValidationError as e:
@@ -260,6 +265,9 @@ def _load_config(config: Optional[Path], console: Console) -> tuple[Path, Config
             loc = ".".join(map(str, err["loc"]))
             msg = err["msg"]
             console.print(f"[red]ERROR[/red] {loc} -> {msg}")
+        raise Exit(code=1)
+    except (OSError, ValueError, NotImplementedError) as e:
+        console.print(f"[red]ERROR[/red] {escape(str(resolved))}: {escape(str(e))}")
         raise Exit(code=1)
 
 

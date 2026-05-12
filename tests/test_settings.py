@@ -47,6 +47,58 @@ def test_synth_file_env_var(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> 
     assert result.exit_code == 0
 
 
+def test_synth_file_env_var_invalid_file_exits_with_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("SYNTH_FILE", str(tmp_path / "nonexistent.yaml"))
+
+    result = CliRunner().invoke(cli, ["run", "--dry"])
+
+    assert result.exit_code == 1
+    assert "ERROR" in result.output
+
+
+def test_synth_file_env_var_empty_exits_with_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("SYNTH_FILE", "")
+
+    result = CliRunner().invoke(cli, ["run", "--dry"])
+
+    assert result.exit_code == 1
+    assert "ERROR" in result.output
+
+
+def test_config_file_non_yaml_exits_with_error(tmp_path: Path) -> None:
+    config_file = tmp_path / "synth.toml"
+    config_file.write_text("[flows]\n")
+
+    result = CliRunner().invoke(cli, ["list", "--config", str(config_file)])
+
+    assert result.exit_code == 1
+    assert "ERROR" in result.output
+
+
+def test_synth_file_env_var_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "custom.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("SYNTH_FILE", str(config_file))
+
+    result = CliRunner().invoke(cli, ["list"])
+
+    assert result.exit_code == 0
+
+
+def test_synth_file_env_var_diagram(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "custom.yaml"
+    config_file.write_text("flows:\n  default: {}")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("SYNTH_FILE", str(config_file))
+
+    result = CliRunner().invoke(cli, ["diagram"])
+
+    assert result.exit_code == 0
+
+
 def test_setting_override_accepted() -> None:
     result = run_example("once.yaml", ("--setting", "timestamps.sub_second_digits=3"))
 
