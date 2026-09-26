@@ -1,0 +1,24 @@
+flows:
+  default:
+    nodes:
+      a:
+        recipe:
+          commands: |
+            echo "Task A"
+            sleep 1
+        triggers:
+          - after: [c]
+      b:
+        recipe:
+          commands: |
+            echo "Task B"
+            sleep 1
+        triggers:
+          - after: [a]
+      c:
+        recipe:
+          commands: |
+            echo "Task C"
+            sleep 1
+        triggers:
+          - after: [b]
