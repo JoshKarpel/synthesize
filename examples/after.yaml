@@ -1,0 +1,27 @@
+flows:
+  default:
+    nodes:
+      A:
+        recipe: sleep-and-echo
+      B:
+        recipe: sleep-and-echo
+      C:
+        recipe: sleep-and-echo
+      D:
+        recipe: sleep-and-echo
+        triggers:
+        - after: [A, B]
+      E:
+        recipe: sleep-and-echo
+        triggers:
+        - after: [C]
+      F:
+        recipe: sleep-and-echo
+        triggers:
+        - after: [D, E]
+
+recipes:
+  sleep-and-echo:
+    commands: |
+      sleep 1
+      echo "Hi from {{ id }}!"
